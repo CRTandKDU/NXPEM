@@ -178,9 +178,31 @@ void engine_reset( engine_state_rec_ptr state ){
 }
 
 //----------------------------------------------------------------------
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
+// Added Wednesday, July 8, 2026 for emscripten translation
+// and Nexpert Callable Interface compatibility.
+//----------------------------------------------------------------------
+
+void engine_backpushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h ){
+  cell_rec_ptr prev = NULL, cell = NULL, last = state->agenda;
+  // Find last cell
+  while( last ){
+    prev = last;
+    last = last->next;
+  }
+  // Suggest
+  cell = (cell_rec_ptr) malloc( sizeof( struct cell_rec ) );
+  if( prev ){
+    prev->next = cell;
+  }
+  else{
+    state->agenda = cell;
+  }
+  cell->next		= NULL;
+  cell->sign_or_hypo	= h;
+  cell->val.status	= _UNKNOWN;
+  if( S_on_push ) S_on_push( h, (struct val_rec *)0 );
+}
+
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h ){
   // Suggest
   cell_rec_ptr cell	= (cell_rec_ptr)malloc( sizeof( struct cell_rec ) );

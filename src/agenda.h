@@ -233,6 +233,7 @@ void		engine_backward_cond( cond_rec_ptr cond, int *suspend );
 void            engine_free_state( engine_state_rec_ptr state );
 void            engine_print_state( engine_state_rec_ptr state );
 void            engine_pushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h );
+void            engine_backpushnew_hypo( engine_state_rec_ptr state, hypo_rec_ptr h );
 void            engine_pushnew_signdata( engine_state_rec_ptr state, sign_rec_ptr sign, struct val_rec *val );
 void            engine_pop( engine_state_rec_ptr state );
 void            engine_knowcess( engine_state_rec_ptr state );

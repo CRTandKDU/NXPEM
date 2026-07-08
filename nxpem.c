@@ -9,6 +9,7 @@
 #include "nxp_evoke.h"
 
 #include <emscripten.h>
+#include "nxpem.h"
 
 static engine_state_rec_ptr S_State;
 engine_state_rec_ptr repl_getState(){
@@ -88,11 +89,63 @@ void  repl_log( const char *s ){
 #ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
 #endif
-int suggest( const char * h ){
-  sign_rec_ptr hypo = sign_find( h, loadkb_get_allhypos() );
+AtomId nxpem_getatomid( const char *name, int nxptype ){
+  sign_rec_ptr res = NULL;
+  switch( nxptype ){
+  case NXP_ATYPE_HYPO:
+    res = sign_find( name, loadkb_get_allhypos() );
+    break;
+  case NXP_ATYPE_SIGN:
+    res = sign_find( name, loadkb_get_allsigns() );
+    break;
+  case NXP_ATYPE_RULE:
+    res = sign_find( name, (sign_rec_ptr) loadkb_get_allrules() );
+    break;
+  }
+  return (AtomId) res;
+}
+
+void nxpem_unsuggest( hypo_rec_ptr hypo )
+{
+  cell_rec_ptr *pp = &(S_State->agenda);
+  cell_rec_ptr temp;
+
+  while (*pp != NULL)
+    {
+      if ((*pp)->sign_or_hypo == hypo)
+        {
+	  temp = *pp;
+	  *pp = temp->next;
+	  free(temp);
+        }
+      else
+        {
+	  pp = &(*pp)->next;
+        }
+    }
+}
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif
+int nxpem_suggest( AtomId h, int priority ){
+  hypo_rec_ptr hypo = (hypo_rec_ptr) h;
   if( hypo ){
-    printf( "Suggest: %s\n", h );
-    engine_pushnew_hypo( S_State, hypo );
+    printf( "Suggest: %s (prio=%d)\n", hypo->str, priority );
+    switch( priority ){
+    case NXP_SPRIO_SUG:
+      engine_pushnew_hypo( S_State, hypo );
+      break;
+    case NXP_SPRIO_HYPISL:
+      engine_backpushnew_hypo( S_State, hypo );
+      break;
+    case NXP_SPRIO_CNTX:
+      evoke_push( (sign_rec_ptr) hypo );
+      break;
+    case NXP_SPRIO_UNSUG:
+      nxpem_unsuggest( hypo );
+      break;
+    }
     return 1;
   }
   else{
@@ -100,16 +153,7 @@ int suggest( const char * h ){
   }
 }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
-void resume_knowcess(){
-  engine_resume_knowcess( S_State );
-}
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 void prologue(){
   int ignore;
   //----------------------------------------------------------------------
@@ -128,9 +172,6 @@ void prologue(){
   printf( "Init -- Done\n" );
 }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 void epilogue(){
   //----------------------------------------------------------------------
   // NXP epilogue
@@ -151,18 +192,34 @@ void epilogue(){
 #ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
 #endif
-void session(){
-  int ignore;
-  sign_rec_ptr hypo;
-  ignore = loadkb_file( "satfault.org", LOADKB_OVERWRITE );
-  printf( "Loaded KB %d\n", ignore );
-  hypo = sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() );
-  if( hypo ){
-    printf( "Suggest: POSSIBLE_LEAK\n" );
-    engine_pushnew_hypo( S_State, hypo );
+void nxpem_control( int ctrl ){
+  switch( ctrl ){
+  case NXP_CTRL_INIT:
+    prologue();
+    break;
+  case NXP_CTRL_RESTART:
+    break;
+  case NXP_CTRL_RESUME:
     engine_resume_knowcess( S_State );
+    break;
+  case NXP_CTRL_EXIT:
+    epilogue();
+    break;
   }
-}  
+}
+
+/* void session(){ */
+/*   int ignore; */
+/*   sign_rec_ptr hypo; */
+/*   ignore = loadkb_file( "satfault.org", LOADKB_OVERWRITE ); */
+/*   printf( "Loaded KB %d\n", ignore ); */
+/*   hypo = sign_find( "POSSIBLE_LEAK", loadkb_get_allhypos() ); */
+/*   if( hypo ){ */
+/*     printf( "Suggest: POSSIBLE_LEAK\n" ); */
+/*     engine_pushnew_hypo( S_State, hypo ); */
+/*     engine_resume_knowcess( S_State ); */
+/*   } */
+/* }   */
 
 /* int main(int argc, char* argv[]){ */
 /*   int ignore; */
