@@ -11,7 +11,7 @@ DSL_SRCDIR      = C:/cygwin64/home/Moria/embed-master
 # C/CPP Flags
 CFLAGS		= -I$(NXP_SRCDIR)
 CEXTRAFLAGS	= -D NXPEM -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv -I$(NXP_SRCDIR)/zhash/src
-EMSDK_FLAGS     = -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
+EMSDK_FLAGS     = -s EXPORTED_RUNTIME_METHODS=ccall,cwrap
 
 DSL_CFLAGS	= -D ENGINE_DSL -D ENGINE_DSL_HOWERJFORTH
 DSL_LIBS	= $(DSL_DIR)/libcsv/libcsv_la-libcsv.o $(DSL_DIR)/embed-master/util.o -L$(DSL_DIR)/embed-master -lembed # -lm

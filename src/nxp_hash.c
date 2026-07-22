@@ -22,25 +22,25 @@ void nxp_hash_iterate_table( void *f ){
 
 void nxp_hash__printentry( struct ZHashEntry *entry ){
   if( '|' != entry->key[ strlen(entry->key) - 1 ] ){
-    printf( "\tkey=%s\tval=%s\n", entry->key, (char *) entry->val );
+    /* printf( "\tkey=%s\tval=%s\n", entry->key, (char *) entry->val ); */
   }
   else{
-    printf( "\tkey=%s\tval=%lu\n", entry->key, (unsigned long int) entry->val );
+    /* printf( "\tkey=%s\tval=%lu\n", entry->key, (unsigned long int) entry->val ); */
   }
 }
 
 void nxp_hash_print(){
-  printf( "BIGHASH %zu entries\n", S_BigHash->entry_count );
+  /* printf( "BIGHASH %zu entries\n", S_BigHash->entry_count ); */
   nxp_hash_iterate_table( (void *) nxp_hash__printentry );
 }
 
 void nxp_hash__free_entry( struct ZHashEntry* entry ){
   if( '|' != entry->key[ strlen(entry->key) - 1 ] ){
-    printf( "BigHash Freeing %s\n", (char *) entry->val );
+    /* printf( "BigHash Freeing %s\n", (char *) entry->val ); */
     free( entry->val );
   }
   else{
-    printf( "BigHash Freeing key=%s\tval=%lu\n", entry->key, (unsigned long int) entry->val );
+    /* printf( "BigHash Freeing key=%s\tval=%lu\n", entry->key, (unsigned long int) entry->val ); */
   }
 }
 

@@ -630,7 +630,7 @@ static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *c
   static const char *preamble = "only forth definitions system +order\n";
   int r = 0;
   if ((r = embed_eval(h, preamble)) < 0) {
-    embed_error("embed: eval(%s) returned %d", preamble, r);
+    /* embed_error("embed: eval(%s) returned %d", preamble, r); */
     return r;
   }
 
@@ -641,11 +641,11 @@ static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *c
     r = snprintf(line, sizeof(line), ": %s %u vm ; %s\n", cb[i].name, (unsigned)i, optimizer);
     assert(strlen(line) < sizeof(line) - 1);
     if (r < 0) {
-      embed_error("format error in snprintf (returned %d)", r);
+      /* embed_error("format error in snprintf (returned %d)", r); */
       return -1;
     }
     if ((r = embed_eval(h, line)) < 0) {
-      embed_error("embed: eval(%s) returned %d", line, r);
+      /* embed_error("embed: eval(%s) returned %d", line, r); */
       return r;
     }
   }
@@ -661,15 +661,15 @@ static vm_extension_t *vm_extension_new(void) {
   if (!(v->h))
     goto fail;
 
-  v->callbacks_length = number_of_callbacks(),
-    v->callbacks        = callbacks;
+  v->callbacks_length = number_of_callbacks();
+  v->callbacks        = callbacks;
   v->o                = embed_opt_default_hosted();
   v->o.callback       = callback_selector;
   v->o.param          = v;
   embed_opt_set(v->h, &v->o);
 
   if (callbacks_add(v->h, true, v->callbacks, v->callbacks_length) < 0) {
-    embed_error("adding callbacks failed");
+    /* embed_error("adding callbacks failed"); */
     goto fail;
   }
 
@@ -686,7 +686,7 @@ static vm_extension_t *vm_extension_new(void) {
 /* } */
 
 static void vm_extension_free(vm_extension_t *v) {
-  assert(v);
+  /* assert(v); */
   embed_free(v->h);
   // TODO: Free strings
   memset(v, 0, sizeof(*v));
@@ -931,16 +931,16 @@ int nxpcsv_io( char *fn, csv_cb1_t f_cb1, csv_cb2_t f_cb2 ){
   while ((bytes_read=fread(buf, 1, 1024, fp)) > 0) {
     if ((retval = csv_parse(&p, buf, bytes_read, f_cb1, f_cb2, NULL)) != bytes_read) {
       if (csv_error(&p) == CSV_EPARSE) {
-	printf("%s: malformed at byte %lu\n", fn, (unsigned long)pos + retval + 1);
+	/* printf("%s: malformed at byte %lu\n", fn, (unsigned long)pos + retval + 1); */
 	goto end;
       } else {
-	printf("Error while processing %s: %s\n", fn, csv_strerror(csv_error(&p)));
+	/* printf("Error while processing %s: %s\n", fn, csv_strerror(csv_error(&p))); */
 	goto end;
       }
     }
     pos += bytes_read;
   }
-  /* printf("%s well-formed\n", fn); */
+  /* /* printf("%s well-formed\n", fn); */ */
 
  end:
   fclose(fp);
@@ -986,26 +986,26 @@ static int cb_nxpcsv_w(vm_extension_t * const v) {
 
 
 /* ----------------------------------------------------------------------------- */
-static int cb_nxpshow(vm_extension_t * const v) {
-  unsigned short i;
-  int            res, len;
-  cell_t         val;
-  char           *cmdstr;
-  res = embed_pop( v->h, &val );
-  len = (int)val;
-  cmdstr = (char *)malloc( (len + 10)*sizeof(char) );
-  strcpy( cmdstr, "cygstart " );
-  for( i = 0; i < len; i++ ){
-    res = embed_pop( v->h, &val );
-    *(cmdstr + i + 9) = (char)val;
-  }
-  res = embed_pop( v->h, &val ); // Ignore ')'
-  *(cmdstr + i + 9) = 0;
+/* static int cb_nxpshow(vm_extension_t * const v) { */
+/*   unsigned short i; */
+/*   int            res, len; */
+/*   cell_t         val; */
+/*   char           *cmdstr; */
+/*   res = embed_pop( v->h, &val ); */
+/*   len = (int)val; */
+/*   cmdstr = (char *)malloc( (len + 10)*sizeof(char) ); */
+/*   strcpy( cmdstr, "cygstart " ); */
+/*   for( i = 0; i < len; i++ ){ */
+/*     res = embed_pop( v->h, &val ); */
+/*     *(cmdstr + i + 9) = (char)val; */
+/*   } */
+/*   res = embed_pop( v->h, &val ); // Ignore ')' */
+/*   *(cmdstr + i + 9) = 0; */
 
-  system( cmdstr );
-  free( cmdstr );
-  return res;
-}
+/*   system( cmdstr ); */
+/*   free( cmdstr ); */
+/*   return res; */
+/* } */
 
 
 static int cb_nxpshow(vm_extension_t * const v) {
@@ -1066,16 +1066,6 @@ static int cb_nxpset(vm_extension_t * const v) {
   return 0;
 }
 
-/* void engine_dsl_getter_compound( compound_rec_ptr compound ){ */
-/* #ifdef ENGINE_DSL_HOWERJFORTH */
-/*   int r; */
-/*   if(TRACE_ON) printf("<FORTH> Compound %s\n%s\n", compound->str, (char *)compound->dsl_expression ); */
-/*   r = engine_dsl_eval( (char *) (compound->dsl_expression) ); */
-/*   /\* if( 65535 == r ) r = _TRUE; // -1 is true in FORTH *\/ */
-/*   if(TRACE_ON) printf("<FORTH> Evaluated to %d\n", r ); */
-/*   sign_set_default( (sign_rec_ptr)compound, r ); */
-/* #endif   */
-/* } */
 
 /* Each Sign is represented by a "shadow" word in the FORTH environment. The shadow */
 /* word for a sign spells out the name of the sign on the stack: each character */
@@ -1117,7 +1107,7 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
 	embed_fatal( "can't pop sign $ address" );
       sign->val.val_forth = val;
     }
-    if(TRACE_ON) printf ("__FUNCTION__ = %s res = %d\n", __FUNCTION__, r);
+
   }
   return r;
 }
@@ -1148,23 +1138,18 @@ int  engine_dsl_init(){
   BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t));
   vm_extension_t *v = vm_extension_new();
   if (!v){
-    embed_fatal("embed extensions: load failed");
+    /* embed_fatal("embed extensions: load failed"); */
     return 1;
   }
 
-  /* const int r = vm_extension_run(v); */
   cell_t val;
   char   str[_MARSHALL_BUFLEN], *s;
   int    res;
-  /* int    r = nxp_init( v ); */
-  if(TRACE_ON) printf( "Engine DSL: howerjforth\n\n" );
-  /* res = embed_eval( v->h, ": =s( [char] ) parse compare 0 = ;\n" ); */
-  /* if( 0 != res ) */
-  /*   embed_fatal( "can't compile word =s(" ); */
-  /* res = embed_eval( v->h, ": s( [char] ) parse dup >r for dup r@ + c@ swap next drop r> ;\n" ); */
+
   res = embed_eval( v->h, ": s( [char] ) parse ;\n" );
+
   if( 0 != res ){
-    embed_fatal( "can't compile word s(" );
+    /* embed_fatal( "can't compile word s(" ); */
     return 1;
   }
   S_v = v;
@@ -1179,7 +1164,7 @@ extern void  repl_log( const char *s );
 
 int  engine_dsl_eval( const char * expr ){
   cell_t val;
-  if(TRACE_ON) printf( "<FORTH> Evaluating %s\n", expr );
+
   int r = embed_eval( S_v->h, expr );
   r = embed_pop( S_v->h, &val );
   // TRUE is -1 in FORTH
