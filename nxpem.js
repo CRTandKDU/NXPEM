@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmplx2f3_u_.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpjksr7np5.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -194,21 +194,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmplx2f3_u_.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmp76089hfj.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmpjksr7np5.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpb4kt3mz9.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmp76089hfj.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmp_oygzvaq.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpb4kt3mz9.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpnfak202d.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmp_oygzvaq.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpnfak202d.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1106,8 +1106,10 @@ function dbg(...args) {
 // end include: runtime_debug.js
 // === Body ===
 
-function call_question(str) { let resp = prompt('What is the value of ' + UTF8ToString(str), 'I don\'t know!' ); if( null != resp ){ console.log( 'Set value to ' + resp ); } }
+function py_marshall_char(s) { }
 function py_print(s) { }
+function cb_question(str) { let resp = prompt('What is the value of ' + UTF8ToString(str), 'I don\'t know!' ); if( null != resp ){ console.log( 'Set value to ' + resp ); } }
+function cb_py_question(suspend) { }
 
 // end include: preamble.js
 
@@ -4472,7 +4474,7 @@ var wasmImports = {
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
-  call_question: call_question,
+  cb_py_question: cb_py_question,
   /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
   /** @export */
@@ -4486,10 +4488,13 @@ var wasmImports = {
   /** @export */
   fd_write: _fd_write,
   /** @export */
+  py_marshall_char: py_marshall_char,
+  /** @export */
   py_print: py_print
 };
 var wasmExports = createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
+var _nxpem_marshall_char = Module['_nxpem_marshall_char'] = createExportWrapper('nxpem_marshall_char', 1);
 var _nxpem_getatomid = Module['_nxpem_getatomid'] = createExportWrapper('nxpem_getatomid', 2);
 var _loadkb_get_allhypos = Module['_loadkb_get_allhypos'] = createExportWrapper('loadkb_get_allhypos', 0);
 var _loadkb_get_allsigns = Module['_loadkb_get_allsigns'] = createExportWrapper('loadkb_get_allsigns', 0);
@@ -4497,6 +4502,7 @@ var _loadkb_get_allrules = Module['_loadkb_get_allrules'] = createExportWrapper(
 var _nxpem_suggest = Module['_nxpem_suggest'] = createExportWrapper('nxpem_suggest', 2);
 var _loadkb_reset = Module['_loadkb_reset'] = createExportWrapper('loadkb_reset', 0);
 var _nxpem_control = Module['_nxpem_control'] = createExportWrapper('nxpem_control', 1);
+var _nxpem_loadkb_file = Module['_nxpem_loadkb_file'] = createExportWrapper('nxpem_loadkb_file', 0);
 var _loadkb_file = Module['_loadkb_file'] = createExportWrapper('loadkb_file', 2);
 var _loadkb_howmany = Module['_loadkb_howmany'] = createExportWrapper('loadkb_howmany', 1);
 var _fflush = createExportWrapper('fflush', 1);
@@ -4509,7 +4515,7 @@ var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
 var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 5);
 var ___start_em_js = Module['___start_em_js'] = 86304;
-var ___stop_em_js = Module['___stop_em_js'] = 86494;
+var ___stop_em_js = Module['___stop_em_js'] = 86542;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===

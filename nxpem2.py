@@ -29,8 +29,30 @@ def py_print( s ) -> None:
             print( marshall_str )
         else:
             marshall_str += chr(s)
-    
 
+
+def py_marshall_char( s ) -> None:
+    global marshall_str
+    if 2 == s:
+        marshall_str = ''
+    else:
+        if 4 == s:
+            pass
+        else:
+            marshall_str += chr(s)
+            
+            
+def em_marshall_str( s: str, func ) -> None:
+    func( 2 )
+    for c in s:
+        func( ord(c) )
+    func( 4 )
+
+
+def cb_question( suspend ) -> None:
+    print( "Question:", marshall_str, suspend )
+
+    
 async def main() -> None:
     callbacks = {
         "cb_question": cb_question,
@@ -43,10 +65,15 @@ async def main() -> None:
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
 
     # Get a reference to the exported functions
-    NXP_LoadKB  = exports["loadkb_file"]
-    NXP_Control = exports["nxpem_control"]
+    NXPEM_MARSHALL_CHAR = exports["nxpem_marshall_char"]
+    NXP_LoadKB          = exports["nxpem_loadkb_file"]
+    NXP_Control         = exports["nxpem_control"]
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )
+    #
+    em_marshall_str( "satfault.org", NXPEM_MARSHALL_CHAR );
+    print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB() );
+    
     # ignore = NXP_LoadKB( store, 'satfault.org', 1 )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_EXIT", NXP_Control( NXP_CTRL_EXIT ) )
 

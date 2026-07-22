@@ -20,6 +20,62 @@ engine_state_rec_ptr repl_getState(){
 static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0, 0 };
 static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0, 0 };
 
+//----------------------------------------------------------------------
+// NXPEM Marshalling strings to WASI-like host code 
+//----------------------------------------------------------------------
+
+#define NXPEM_MARSHALL_STRING_BEG 2
+#define NXPEM_MARSHALL_STRING_END 4
+
+static char  S_marshall_str[128] = {0};
+static short S_marshall_idx = 0;
+
+EM_JS( void, py_marshall_char, ( int32_t s ), {
+    //
+  });
+
+
+EM_JS( void, py_print, ( int32_t s ), {
+    //
+  });
+
+
+void py_print_str( const char *buf ){
+  short i;
+  py_print( NXPEM_MARSHALL_STRING_BEG );
+  for( i=0; i<strlen( buf ); i++ ){
+    py_print( buf[i] );
+  }
+  py_print( NXPEM_MARSHALL_STRING_END );
+}
+
+
+void py_marshall_str( const char *buf ){
+  short i;
+  py_print( NXPEM_MARSHALL_STRING_BEG );
+  for( i=0; i<strlen( buf ); i++ ){
+    py_marshall_char( buf[i] );
+  }
+  py_print( NXPEM_MARSHALL_STRING_END );
+}
+
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif
+void nxpem_marshall_char( int32_t s ){
+  if( NXPEM_MARSHALL_STRING_BEG == s ){
+    S_marshall_idx = 0;
+  }
+  else if( NXPEM_MARSHALL_STRING_END == s ){
+    S_marshall_str[S_marshall_idx] = 0x00;
+  }
+  else{
+    if( S_marshall_idx < 127 )
+      S_marshall_str[S_marshall_idx++] = s;
+  }
+}
+
 
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
@@ -72,10 +128,16 @@ EM_JS(void, cb_question, (const char* str), {
 });
 // clang-format on
 
+// clang-format off 
+EM_JS(void, cb_py_question, ( int32_t suspend ), {
+    //
+});
+// clang-format on
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   *suspend = _TRUE;
-  cb_question( sign->str );
+  py_marshall_str( sign->str );
+  cb_py_question( (int32_t) suspend );
 }
 
 void  repl_log( const char *s ){
@@ -149,25 +211,6 @@ int nxpem_suggest( AtomId h, int priority ){
   }
 }
 
-//----------------------------------------------------------------------
-// NXPEM Marshalling strings to WASI-like host code 
-//----------------------------------------------------------------------
-
-#define NXPEM_MARSHALL_STRING_BEG 2
-#define NXPEM_MARSHALL_STRING_END 4
-
-EM_JS( void, py_print, ( int32_t s ), {
-    //
-  });
-
-void py_print_str( const char *buf ){
-  short i;
-  py_print( NXPEM_MARSHALL_STRING_BEG );
-  for( i=0; i<strlen( buf ); i++ ){
-    py_print( buf[i] );
-  }
-  py_print( NXPEM_MARSHALL_STRING_END );
-}
 
 void prologue(){
   int ignore;
@@ -229,5 +272,14 @@ int32_t nxpem_control( int32_t ctrl ){
   }
   return (int32_t) 0;
 }
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif
+int32_t nxpem_loadkb_file(){
+  int32_t ret = loadkb_file( S_marshall_str, 1 );
+  return ret;
+}
+
 
 
