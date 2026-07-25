@@ -22,7 +22,7 @@ static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0
 static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0, 0 };
 
 //----------------------------------------------------------------------
-// NXPEM Marshalling strings to WASI-like host code 
+// NXPEM Marshalling strings to WASI-like host code, 1 char at time!
 //----------------------------------------------------------------------
 
 #define NXPEM_MARSHALL_STRING_BEG 2

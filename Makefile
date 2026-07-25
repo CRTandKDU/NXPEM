@@ -6,11 +6,13 @@ CC              = gcc
 NXP_SRCDIR	= C:/Users/chauv/Documents/emsdk/src
 NXP_BUILDDIR	= C:/Users/chauv/Documents/emsdk/build
 
-DSL_DIR	        = C:/cygwin64/home/Moria
-DSL_SRCDIR      = C:/cygwin64/home/Moria/embed-master
+DSL_DIR	        = C:/Users/chauv/Documents/emsdk
+# was C:/cygwin64/home/Moria
+DSL_SRCDIR      = $(DSL_DIR)/embed-master
+# was C:/cygwin64/home/Moria/embed-master
 
 # C/CPP Flags
-CFLAGS		= -I$(NXP_SRCDIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(DSL_DIR)/libcsv -I$(NXP_SRCDIR)/zhash/src
+CFLAGS		= -I$(NXP_SRCDIR) -I$(DSL_DIR)/libforth -I$(DSL_DIR)/embed-master -I$(NXP_SRCDIR)/zhash/src # -I$(DSL_DIR)/libcsv 
 CEXTRAFLAGS	= -D NXPEM 
 EMSDK_FLAGS     = -D NXPEM_MEMCPY # -s EXPORTED_RUNTIME_METHODS=ccall,cwrap
 
