@@ -272,6 +272,7 @@ typedef sign_rec_ptr (*loadkb_parse_cb_t) (char *pw, compound_rec_ptr compound, 
 
 sign_rec_ptr	        loadkb_parse( char *, compound_rec_ptr, sign_rec_ptr, loadkb_parse_cb_t );
 int			loadkb_file( const char *, int );
+int			loadkb_string( const char *, int );
 void			loadkb_reset();
 sign_rec_ptr		loadkb_get_allsigns();
 hypo_rec_ptr		loadkb_get_allhypos();

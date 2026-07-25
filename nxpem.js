@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmpjksr7np5.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp4bmbexaj.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -194,21 +194,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmpjksr7np5.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpb4kt3mz9.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmp4bmbexaj.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpwmgoqcd_.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpb4kt3mz9.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpnfak202d.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpwmgoqcd_.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp32esexp1.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpnfak202d.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmp32esexp1.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -4355,104 +4355,6 @@ function cb_py_question(suspend) { }
   }
 
 
-  var getCFunc = (ident) => {
-      var func = Module['_' + ident]; // closure exported function
-      assert(func, 'Cannot call unknown function ' + ident + ', make sure it is exported');
-      return func;
-    };
-  
-  var writeArrayToMemory = (array, buffer) => {
-      assert(array.length >= 0, 'writeArrayToMemory array must have a length (should be an array or typed array)')
-      HEAP8.set(array, buffer);
-    };
-  
-  
-  var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
-      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
-      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
-    };
-  
-  var stackAlloc = (sz) => __emscripten_stack_alloc(sz);
-  var stringToUTF8OnStack = (str) => {
-      var size = lengthBytesUTF8(str) + 1;
-      var ret = stackAlloc(size);
-      stringToUTF8(str, ret, size);
-      return ret;
-    };
-  
-  
-  
-  
-  
-    /**
-     * @param {string|null=} returnType
-     * @param {Array=} argTypes
-     * @param {Arguments|Array=} args
-     * @param {Object=} opts
-     */
-  var ccall = (ident, returnType, argTypes, args, opts) => {
-      // For fast lookup of conversion functions
-      var toC = {
-        'string': (str) => {
-          var ret = 0;
-          if (str !== null && str !== undefined && str !== 0) { // null string
-            // at most 4 bytes per UTF-8 code point, +1 for the trailing '\0'
-            ret = stringToUTF8OnStack(str);
-          }
-          return ret;
-        },
-        'array': (arr) => {
-          var ret = stackAlloc(arr.length);
-          writeArrayToMemory(arr, ret);
-          return ret;
-        }
-      };
-  
-      function convertReturnValue(ret) {
-        if (returnType === 'string') {
-          
-          return UTF8ToString(ret);
-        }
-        if (returnType === 'boolean') return Boolean(ret);
-        return ret;
-      }
-  
-      var func = getCFunc(ident);
-      var cArgs = [];
-      var stack = 0;
-      assert(returnType !== 'array', 'Return type should not be "array".');
-      if (args) {
-        for (var i = 0; i < args.length; i++) {
-          var converter = toC[argTypes[i]];
-          if (converter) {
-            if (stack === 0) stack = stackSave();
-            cArgs[i] = converter(args[i]);
-          } else {
-            cArgs[i] = args[i];
-          }
-        }
-      }
-      var ret = func(...cArgs);
-      function onDone(ret) {
-        if (stack !== 0) stackRestore(stack);
-        return convertReturnValue(ret);
-      }
-  
-      ret = onDone(ret);
-      return ret;
-    };
-
-  
-  
-    /**
-     * @param {string=} returnType
-     * @param {Array=} argTypes
-     * @param {Object=} opts
-     */
-  var cwrap = (ident, returnType, argTypes, opts) => {
-      return (...args) => ccall(ident, returnType, argTypes, args, opts);
-    };
-
 
 
   var FS_unlink = (path) => FS.unlink(path);
@@ -4496,15 +4398,9 @@ var wasmExports = createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _nxpem_marshall_char = Module['_nxpem_marshall_char'] = createExportWrapper('nxpem_marshall_char', 1);
 var _nxpem_getatomid = Module['_nxpem_getatomid'] = createExportWrapper('nxpem_getatomid', 2);
-var _loadkb_get_allhypos = Module['_loadkb_get_allhypos'] = createExportWrapper('loadkb_get_allhypos', 0);
-var _loadkb_get_allsigns = Module['_loadkb_get_allsigns'] = createExportWrapper('loadkb_get_allsigns', 0);
-var _loadkb_get_allrules = Module['_loadkb_get_allrules'] = createExportWrapper('loadkb_get_allrules', 0);
 var _nxpem_suggest = Module['_nxpem_suggest'] = createExportWrapper('nxpem_suggest', 2);
-var _loadkb_reset = Module['_loadkb_reset'] = createExportWrapper('loadkb_reset', 0);
 var _nxpem_control = Module['_nxpem_control'] = createExportWrapper('nxpem_control', 1);
 var _nxpem_loadkb_file = Module['_nxpem_loadkb_file'] = createExportWrapper('nxpem_loadkb_file', 0);
-var _loadkb_file = Module['_loadkb_file'] = createExportWrapper('loadkb_file', 2);
-var _loadkb_howmany = Module['_loadkb_howmany'] = createExportWrapper('loadkb_howmany', 1);
 var _fflush = createExportWrapper('fflush', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
@@ -4514,8 +4410,10 @@ var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExpor
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
 var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 5);
-var ___start_em_js = Module['___start_em_js'] = 86304;
-var ___stop_em_js = Module['___stop_em_js'] = 86542;
+var _embed_default_block_size = Module['_embed_default_block_size'] = 73336;
+var _embed_default_block = Module['_embed_default_block'] = 67920;
+var ___start_em_js = Module['___start_em_js'] = 86096;
+var ___stop_em_js = Module['___stop_em_js'] = 86334;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===
@@ -4525,8 +4423,6 @@ Module['removeRunDependency'] = removeRunDependency;
 Module['FS_createPath'] = FS.createPath;
 Module['FS_createLazyFile'] = FS.createLazyFile;
 Module['FS_createDevice'] = FS.createDevice;
-Module['ccall'] = ccall;
-Module['cwrap'] = cwrap;
 Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
 Module['FS_createDataFile'] = FS.createDataFile;
 Module['FS_unlink'] = FS.unlink;
@@ -4540,6 +4436,7 @@ var missingLibrarySymbols = [
   'readI53FromU64',
   'convertI32PairToI53',
   'convertU32PairToI53',
+  'stackAlloc',
   'getTempRet0',
   'setTempRet0',
   'growMemory',
@@ -4574,6 +4471,9 @@ var missingLibrarySymbols = [
   'STACK_ALIGN',
   'POINTER_SIZE',
   'ASSERTIONS',
+  'getCFunc',
+  'ccall',
+  'cwrap',
   'uleb128Encode',
   'sigToWasmTypes',
   'generateFuncType',
@@ -4588,6 +4488,7 @@ var missingLibrarySymbols = [
   'strLen',
   'reSign',
   'formatString',
+  'stringToUTF8',
   'intArrayToString',
   'AsciiToString',
   'stringToAscii',
@@ -4598,6 +4499,8 @@ var missingLibrarySymbols = [
   'stringToUTF32',
   'lengthBytesUTF32',
   'stringToNewUTF8',
+  'stringToUTF8OnStack',
+  'writeArrayToMemory',
   'registerKeyEventCallback',
   'maybeCStringToJsString',
   'findEventTarget',
@@ -4714,7 +4617,6 @@ var unexportedSymbols = [
   'convertI32PairToI53Checked',
   'stackSave',
   'stackRestore',
-  'stackAlloc',
   'ptrToString',
   'zeroMemory',
   'exitJS',
@@ -4742,7 +4644,6 @@ var unexportedSymbols = [
   'mmapAlloc',
   'wasmTable',
   'noExitRuntime',
-  'getCFunc',
   'freeTableIndexes',
   'functionsInTableMap',
   'setValue',
@@ -4753,12 +4654,9 @@ var unexportedSymbols = [
   'UTF8ArrayToString',
   'UTF8ToString',
   'stringToUTF8Array',
-  'stringToUTF8',
   'lengthBytesUTF8',
   'intArrayFromString',
   'UTF16Decoder',
-  'stringToUTF8OnStack',
-  'writeArrayToMemory',
   'JSEvents',
   'specialHTMLTargets',
   'findCanvasEventTarget',

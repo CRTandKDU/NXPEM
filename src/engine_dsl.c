@@ -2,11 +2,12 @@
  * engine_dsl.c -- Integrating a DSL for compound signs
  *
  * Written on jeudi, 29 mai 2025.
+ * Adaptation to EMSCRIPTEN Friday, July 24, 2026
  */
-
-
+#define NDEBUG 1
+#define NXPEM  1
 /* #define ENGINE_DSL */
-#include <termios.h>
+/* #include <termios.h> */
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -21,6 +22,7 @@
 
 #include "agenda.h"
 
+extern void py_print_str( const char * );
 extern void  repl_log( const char *s );
 
 #ifdef ENGINE_DSL_HOWERJFORTH
@@ -164,7 +166,7 @@ struct vm_extension_t {
   \
   X("nxp@",     cb_nxpget_async,     true)      \
   X("nxp!",     cb_nxpset,     true)            \
-  X("slog",     cb_nxpslog,    true)            \
+
 
 #endif
 
@@ -604,32 +606,63 @@ static int cb_fmax(vm_extension_t * const v) {
 /*! The virtual machine has only one callback, which we can then use to vector
  * into a table of callbacks provided in 'param', which is a pointer to an
  * instance of 'vm_extension_t' */
-static int callback_selector(embed_t *h, void *param) {
-  assert(h);
-  assert(param);
-  vm_extension_t *e = (vm_extension_t*)param;
-  if (e->h != h)
-    embed_fatal("embed extensions: instance corruption");
-  eclr(e);
-  const cell_t func = pop(e);
-  if (eget(e))
-    return eclr(e);
-  if (func >= e->callbacks_length)
-    return -21;
-  const callbacks_t *cb = &e->callbacks[func];
-  if (!(cb->use))
-    return -21;
-  return cb->cb(e);
+static int callback_selector(embed_t *h, void *param)
+{
+    vm_extension_t *e = (vm_extension_t*) param;
+
+    eclr(e);
+
+    cell_t func = pop(e);
+
+    if (eget(e))
+        return eclr(e);
+
+    if (func >= e->callbacks_length)
+        return -21;
+
+    const callbacks_t *cb = &e->callbacks[func];
+
+    if (!cb->use)
+        return -21;
+
+    return cb->cb(e);
 }
+
+/* static int callback_selector(embed_t *h, void *param) { */
+/*   assert(h); */
+/*   assert(param); */
+/*   vm_extension_t *e = (vm_extension_t*)param; */
+/*   if (e->h != h){ */
+/* #ifndef NXPEM */
+/*     embed_fatal("embed extensions: instance corruption"); */
+/* #endif */
+/*   } */
+/*   eclr(e); */
+/*   const cell_t func = pop(e); */
+/*   if (eget(e)) */
+/*     return eclr(e); */
+/*   if (func >= e->callbacks_length) */
+/*     return -21; */
+/*   const callbacks_t *cb = &e->callbacks[func]; */
+/*   if (!(cb->use)) */
+/*     return -21; */
+/*   return cb->cb(e); */
+/* } */
 
 /*! This adds the call backs to an instance of the virtual machine running
  * an eForth image by defining new words in it with 'embed_eval'.  */
 static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *cb, const size_t number) {
   assert(h && cb);
   const char *optimizer = optimize ? "-2 cells allot ' vm chars ," : "";
-  static const char *preamble = "only forth definitions system +order\n";
+  /* static */
+  const char *preamble = "only forth definitions system +order\n";
   int r = 0;
   if ((r = embed_eval(h, preamble)) < 0) {
+    char msg[256];
+    snprintf(msg, sizeof(msg),
+	     "embed_eval returned %d for: %s", r, preamble);
+    py_print_str(msg);
+    py_print_str( "CB_ADD EMBED_EVAL preamble failed" );
     /* embed_error("embed: eval(%s) returned %d", preamble, r); */
     return r;
   }
@@ -639,12 +672,26 @@ static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *c
     if (!cb[i].use)
       continue;
     r = snprintf(line, sizeof(line), ": %s %u vm ; %s\n", cb[i].name, (unsigned)i, optimizer);
-    assert(strlen(line) < sizeof(line) - 1);
+    /* assert(strlen(line) < sizeof(line) - 1); */
+    if (r >= (int)sizeof(line)) {
+      py_print_str("callback definition truncated");
+      return -1;
+    }
     if (r < 0) {
+      char msg[256];
+      snprintf(msg, sizeof(msg),
+	       "embed_eval returned %d for: %s", r, line);
+      py_print_str(msg);      
+      py_print_str( "CB_ADD EMBED_EVAL snprintf failed" );
       /* embed_error("format error in snprintf (returned %d)", r); */
       return -1;
     }
     if ((r = embed_eval(h, line)) < 0) {
+      char msg[256];
+      snprintf(msg, sizeof(msg),
+	       "embed_eval returned %d for: %s", r, line);
+      py_print_str(msg);      
+      py_print_str( "CB_ADD EMBED_EVAL line failed" );
       /* embed_error("embed: eval(%s) returned %d", line, r); */
       return r;
     }
@@ -653,32 +700,121 @@ static int callbacks_add(embed_t * const h, const bool optimize,  callbacks_t *c
   return 0;
 }
 
-static vm_extension_t *vm_extension_new(void) {
-  vm_extension_t *v = (vm_extension_t *) embed_alloc(sizeof(*v));
-  if (!v)
-    return NULL;
-  v->h = embed_new();
-  if (!(v->h))
-    goto fail;
-
-  v->callbacks_length = number_of_callbacks();
-  v->callbacks        = callbacks;
-  v->o                = embed_opt_default_hosted();
-  v->o.callback       = callback_selector;
-  v->o.param          = v;
-  embed_opt_set(v->h, &v->o);
-
-  if (callbacks_add(v->h, true, v->callbacks, v->callbacks_length) < 0) {
-    /* embed_error("adding callbacks failed"); */
-    goto fail;
-  }
-
-  return v;
- fail:
-  if (v->h)
-    embed_free(v->h);
-  return NULL;
+#ifdef NXPEM
+embed_opt_t embed_opt_default_nxpem(void) {
+	embed_opt_t o = embed_opt_default();
+	o.in   =  NULL ; // stdin;
+	o.out  =  NULL ; // stdout;
+	o.put  =  NULL ; // embed_fputc_cb;
+	o.get  =  NULL ; // embed_fgetc_cb;
+	o.save =  NULL ; // embed_save_cb;
+	return o;
 }
+#endif
+
+static vm_extension_t *vm_extension_new(void)
+{
+    vm_extension_t *v = embed_alloc(sizeof(*v));
+
+    if (!v)
+        return NULL;
+
+    v->h = embed_new();
+
+    if (!v->h) {
+      py_print_str("embed_new failed");
+      goto error;
+    }
+
+    py_print_str("embed_new OK");
+
+
+    v->callbacks = callbacks;
+    v->callbacks_length = number_of_callbacks();
+
+    /* v->o                = embed_opt_default_nxpem(); */
+    v->o                = embed_opt_default_hosted();
+    v->o.callback = callback_selector;
+    v->o.param = v;
+
+    char buf[64];
+    
+    py_print_str("before opt set");
+
+    embed_opt_set(v->h, &v->o);
+
+    py_print_str("after opt set");
+    
+    /* int r = embed_eval(v->h, "only forth\n"); */
+    /* snprintf(buf, sizeof(buf), "only forth returned %d", r); */
+    /* py_print_str(buf); */
+
+    /* r = embed_eval(v->h, "definitions\n"); */
+    /* snprintf(buf, sizeof(buf), "definitions returned %d", r); */
+    /* py_print_str(buf); */
+
+    /* r = embed_eval(v->h, "1 2 +"); */
+    /* cell_t value;		  */
+    
+    /* int p = embed_pop(v->h, &value); */
+    
+    /* snprintf(buf,sizeof(buf), */
+    /* 	     "math eval=%d pop=%d value=%d", */
+    /* 	     r,p,(int)value); */
+    /* py_print_str(buf	);     */
+
+    if (callbacks_add(v->h, true,
+                      v->callbacks,
+                      v->callbacks_length))
+        goto error;
+
+    return v;
+
+error:
+
+    if (v->h)
+        embed_free(v->h);
+
+    free(v);
+
+    return NULL;
+}
+
+/* static vm_extension_t *vm_extension_new(void) { */
+/*   vm_extension_t *v = (vm_extension_t *) embed_alloc(sizeof(*v)); */
+/*   if (!v){ */
+/*     py_print_str( "EMBED_ALLOC failed" ); */
+/*     return NULL; */
+/*   } */
+/*   v->h = embed_new(); */
+/*   if (!(v->h)){ */
+/*     py_print_str( "EMBED_NEW failed" ); */
+/*     goto fail; */
+/*   } */
+
+/*   v->callbacks_length = number_of_callbacks(); */
+/*   v->callbacks        = callbacks; */
+/* #ifdef NXPEM */
+/*   v->o                = embed_opt_default_nxpem(); */
+/* #else */
+/*   v->o                = embed_opt_default_hosted(); */
+/* #endif     */
+/*   v->o.callback       = callback_selector; */
+/*   v->o.param          = v; */
+/*   embed_opt_set(v->h, &v->o); */
+
+/*   if (callbacks_add(v->h, true, v->callbacks, v->callbacks_length) < 0) { */
+/*     py_print_str( "CB_add failed" ); */
+/*     /\* embed_error("adding callbacks failed"); *\/ */
+/*     goto fail; */
+/*   } */
+
+/*   return v; */
+/*  fail: */
+/*   if (v->h) */
+/*     embed_free(v->h); */
+/*   return NULL; */
+/* } */
 
 /* static int vm_extension_run(vm_extension_t *v) { */
 /*   assert(v); */
@@ -694,20 +830,46 @@ static void vm_extension_free(vm_extension_t *v) {
 }
 
 /* ----------------------------------------------------------------------------- */
-void marshall_forth_string( char *str, vm_extension_t * const v ){
-  cell_t val;
-  int    res, r;
-  char   *s;
-  r   = embed_pop( v->h, &val );
-  s   = str;
-  r   = (int)val;
-  for( short i=0; i<r ; i++ ){
-    res = embed_pop( v->h, &val );
-    *s++ = val;
-  }
-  res = embed_pop( v->h, &val );
-  *s = 0;
+static int forth_pop_string(embed_t *h, char *dst, size_t maxlen)
+{
+    cell_t len;
+
+    if (embed_pop(h, &len))
+        return -1;
+
+    if ((size_t)len >= maxlen)
+        len = maxlen - 1;
+
+    for (cell_t i = 0; i < len; i++) {
+        cell_t c;
+        embed_pop(h, &c);
+        dst[i] = (char)c;
+    }
+
+    dst[len] = '\0';
+
+    return 0;
 }
+
+void marshall_forth_string(char *dst, vm_extension_t *v)
+{
+    forth_pop_string(v->h, dst, 80);
+}
+
+/* void marshall_forth_string( char *str, vm_extension_t * const v ){ */
+/*   cell_t val; */
+/*   int    res, r; */
+/*   char   *s; */
+/*   r   = embed_pop( v->h, &val ); */
+/*   s   = str; */
+/*   r   = (int)val; */
+/*   for( short i=0; i<r ; i++ ){ */
+/*     res = embed_pop( v->h, &val ); */
+/*     *s++ = val; */
+/*   } */
+/*   res = embed_pop( v->h, &val ); */
+/*   *s = 0; */
+/* } */
 
 int marshall_forth_compactstring( char *str, vm_extension_t * const v ){
   int len;
@@ -739,21 +901,31 @@ int marshall_forth_compactstring( char *str, vm_extension_t * const v ){
 }
 
 /* ----------------------------------------------------------------------------- */
-sign_rec_ptr nxpget_sign( vm_extension_t * const v ){
-  // Marshall string from FORTH
-  cell_t val;
-  char   str[_MARSHALL_BUFLEN], *s;
-  int    res, r = embed_pop( v->h, &val );
-  s   = str;
-  r   = (int)val;
-  for( short i=0; i<r ; i++ ){
-    res = embed_pop( v->h, &val );
-    *s++ = val;
-  }
-  *s = 0;
-  //
-  return sign_find( str, loadkb_get_allsigns() );
+sign_rec_ptr nxpget_sign(vm_extension_t *v)
+{
+    char name[80];
+
+    if (forth_pop_string(v->h, name, sizeof(name)))
+        return NULL;
+
+    return sign_find(name, loadkb_get_allsigns());
 }
+
+/* sign_rec_ptr nxpget_sign( vm_extension_t * const v ){ */
+/*   // Marshall string from FORTH */
+/*   cell_t val; */
+/*   char   str[_MARSHALL_BUFLEN], *s; */
+/*   int    res, r = embed_pop( v->h, &val ); */
+/*   s   = str; */
+/*   r   = (int)val; */
+/*   for( short i=0; i<r ; i++ ){ */
+/*     res = embed_pop( v->h, &val ); */
+/*     *s++ = val; */
+/*   } */
+/*   *s = 0; */
+/*   // */
+/*   return sign_find( str, loadkb_get_allsigns() ); */
+/* } */
 
 int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
   int res;
@@ -788,7 +960,8 @@ int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
     if( sign->val.valptr ){
       len = strlen( sign->val.valptr );
       for( short i=0; i<len; i += 2 ){
-	cell_t addr = (cell + i)>>1%32768;
+	/* cell_t addr = (cell + i)>>1%32768; */
+	cell_t addr = ((cell + i) >> 1) % 32768;
 	cell_t val  = sign->val.valptr[i] + ( (((i+1) > len) ? 0 : sign->val.valptr[i+1])<<8 );
 	mw( v->h, addr, val );
       }
@@ -797,11 +970,17 @@ int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
       len = 0;
     //
     res = embed_push( v->h, cell );
-    if( 0 != res )
+    if( 0 != res ){
+#ifndef NXPEM
       embed_fatal( "can't push sign$ in nxp@" );
+#endif
+    }
     res = embed_push( v->h, len );
-    if( 0 != res )
+    if( 0 != res ){
+#ifndef NXPEM
       embed_fatal( "can't push len in nxp@" );
+#endif    
+    }
     break;
   }
   return eclr(v);
@@ -1094,17 +1273,28 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
   if( NULL == sign_find( dsl_var, loadkb_get_allsigns() ) ){
     char prgm[_MARSHALL_BUFLEN];
     sprintf( prgm, templ_sign_decl, dsl_var, dsl_var );
+    py_print_str( prgm );
     r = embed_eval( S_v->h, prgm );
-    if( 0 != r )
+    py_print_str( prgm );
+    if( 0 != r ){
+#ifndef NXPEM
       embed_fatal( "can't compile sign decl" );
+#endif
+    }
     if( '$' == dsl_var[0] ){
       sprintf( prgm, templ_sign$_decl, dsl_var, dsl_var );
       r = embed_eval( S_v->h, prgm );
-      if( 0 != r )
+      if( 0 != r ){
+#ifndef NXPEM
 	embed_fatal( "can't compile sign$ decl" );
+#endif
+      }
       r = embed_pop( S_v->h, &val );
-      if( 0 != r )
+      if( 0 != r ){
+#ifndef NXPEM
 	embed_fatal( "can't pop sign $ address" );
+#endif
+      }
       sign->val.val_forth = val;
     }
 
@@ -1135,9 +1325,10 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
 /* by "shadow" words used to marshall values between NXP and FORTH environments. */
 
 int  engine_dsl_init(){
-  BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t));
+  /* BUILD_BUG_ON(sizeof(double_cell_t) != sizeof(sdc_t)); */
   vm_extension_t *v = vm_extension_new();
   if (!v){
+    py_print_str( "VM_EXTENSION_NEW failed" );
     /* embed_fatal("embed extensions: load failed"); */
     return 1;
   }

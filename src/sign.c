@@ -126,8 +126,10 @@ void sign_del(sign_rec_ptr sign)
     if (!sign)
         return;
 
+#ifndef NXPEM    
     fprintf(stderr, "Deleting %s\n", sign->str);
-
+#endif
+    
     if ((sign->len_type & TYPE_MASK) == COMPOUND_MASK) {
         compound_del((compound_rec_ptr)sign);
     }

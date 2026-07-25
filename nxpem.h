@@ -1,7 +1,7 @@
 #ifndef NXPEM_H
 #define NXPEM_H
 
-typedef unsigned long AtomId;
+typedef intptr_t AtomId;
 
 #define NXP_ATYPE_HYPO   1
 #define NXP_ATYPE_SIGN   2

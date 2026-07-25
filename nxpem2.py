@@ -71,7 +71,6 @@ async def main() -> None:
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )
     #
-    em_marshall_str( "satfault.org", NXPEM_MARSHALL_CHAR );
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB() );
     
     # ignore = NXP_LoadKB( store, 'satfault.org', 1 )
@@ -79,7 +78,3 @@ async def main() -> None:
 
     
 asyncio.run(main())
-
-
-
-

@@ -9,13 +9,14 @@
 #include "nxp_hash.h"
 #include "nxp_evoke.h"
 
-#include <emscripten.h>
+
 #include "nxpem.h"
 
 static engine_state_rec_ptr S_State;
 engine_state_rec_ptr repl_getState(){
   return S_State;
 }
+
 
 static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0, 0 };
 static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0, 0 };
@@ -30,6 +31,7 @@ static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.
 static char  S_marshall_str[128] = {0};
 static short S_marshall_idx = 0;
 
+#ifdef NXPEM
 EM_JS( void, py_marshall_char, ( int32_t s ), {
     //
   });
@@ -38,8 +40,16 @@ EM_JS( void, py_marshall_char, ( int32_t s ), {
 EM_JS( void, py_print, ( int32_t s ), {
     //
   });
+#else
+void py_marshall_char( int32_t s ){}
+void py_print( int32_t s ){}
+#endif
 
-
+#ifndef NXPEM
+void py_print_str( const char *s ){
+  printf( "%s\n", s );
+}
+#else
 void py_print_str( const char *buf ){
   short i;
   py_print( NXPEM_MARSHALL_STRING_BEG );
@@ -48,7 +58,7 @@ void py_print_str( const char *buf ){
   }
   py_print( NXPEM_MARSHALL_STRING_END );
 }
-
+#endif
 
 void py_marshall_str( const char *buf ){
   short i;
@@ -118,7 +128,7 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #endif  
 }
 
-
+#ifdef NXPEM
 // clang-format off 
 EM_JS(void, cb_question, (const char* str), {
     let resp = prompt('What is the value of ' + UTF8ToString(str), 'I don\'t know!' );
@@ -133,11 +143,18 @@ EM_JS(void, cb_py_question, ( int32_t suspend ), {
     //
 });
 // clang-format on
+#else
+void cb_question( const char *str ){
+}
+
+void cb_py_question( int32_t suspend ){
+}
+#endif
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   *suspend = _TRUE;
   py_marshall_str( sign->str );
-  cb_py_question( (int32_t) suspend );
+  cb_py_question( (int32_t) 1 );
 }
 
 void  repl_log( const char *s ){
@@ -211,11 +228,13 @@ int nxpem_suggest( AtomId h, int priority ){
   }
 }
 
-//----------------------------------------------------------------------
-// NXP prologue
-//----------------------------------------------------------------------
+
 void prologue(){
   int ignore;
+  //----------------------------------------------------------------------
+  // NXP prologue
+  //----------------------------------------------------------------------
+
   S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
   S_State->current_sign = (sign_rec_ptr)0;
   S_State->agenda	= (cell_rec_ptr)0;
@@ -230,10 +249,10 @@ void prologue(){
   /* printf( "Init -- Done\n" ); */
 }
 
-//----------------------------------------------------------------------
-// NXP epilogue
-//----------------------------------------------------------------------
 void epilogue(){
+  //----------------------------------------------------------------------
+  // NXP epilogue
+  //----------------------------------------------------------------------
   evoke_free();
   py_print_str( "Epilogue: Secondary agenda closed." );
   nxp_hash_close();
@@ -275,12 +294,40 @@ int32_t nxpem_control( int32_t ctrl ){
 EMSCRIPTEN_KEEPALIVE
 #endif
 int32_t nxpem_loadkb_file(){
+  /* int32_t ret = loadkb_file( S_marshall_str, 1 ); */
+  /* py_print_str( S_marshall_str ); */
+  /* ret = loadkb_howmany( loadkb_get_allhypos() ); */
   char kb[] = "#+BEGIN_RULE diagnostic_1\n$CRT_and_KDU nxp@ s( AGREE) compare 0=\n$task nxp@ s( FLUID_TRANSFER) compare 0= invert\nNO ALARM_TANK_WAS_P1_OR_P2\npressure_out_P3 nxp@ pressure_out_P4 nxp@ =\nTHEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n#+END_RULE\n";
-  py_print_str( kb );
   int32_t ret = loadkb_string( kb, 1 );
-  py_print_str( "LOADKB loaded" );
   ret = loadkb_howmany( loadkb_get_allhypos() );
-  py_print_str( "LOADKB END" );
-  
   return ret;
 }
+
+
+const char *S_Color[] = { "\x1b[38;5;46m", "\x1b[38;5;160m", "\x1b[38;5;15m" };
+
+char *S_val_color( unsigned short val ){
+  char *esc;
+  switch( val ){
+  case _TRUE:
+    esc = (char *) S_Color[0];
+    break;
+  case _FALSE:
+    esc = (char *) S_Color[1];
+    break;
+  default:
+    esc = (char *) S_Color[2];
+  }
+  return esc;
+}
+
+int main( int argc, char* argv[] ){
+  int32_t ret;
+  nxpem_control( NXP_CTRL_INIT );
+  ret = nxpem_loadkb_file();
+  printf( "LoadKB: %d\n", ret );
+  printf( "Hypo: %s\n", loadkb_get_allhypos()->str );
+  nxpem_control( NXP_CTRL_EXIT );
+  return ret;
+}
+

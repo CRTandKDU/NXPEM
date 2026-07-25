@@ -13,9 +13,11 @@
 
 #include "agenda.h"
 #include "nxp_hash.h"
-#ifdef NXPEM
-#include <emscripten.h>
-#endif
+/* #ifdef NXPEM */
+/* #include <emscripten.h> */
+/* #endif */
+
+extern void py_print_str( const char * );
 
 #define INFO_BUFSIZE 1024
 #define TRACE_ON 0
@@ -82,7 +84,7 @@ int comp_count = 0;
 /*--------------------------------------------------------------------*/
 /* Utility                                                            */
 /*--------------------------------------------------------------------*/
-
+#ifndef NXPEM
 void
 print_context( parser_ctx_t *ctx ){
   return;
@@ -95,6 +97,7 @@ print_context( parser_ctx_t *ctx ){
 	  ctx->sign ? ctx->sign->str : "NONE",
 	  ctx->compound ? ctx->compound->str : "NONE" );
 }
+#endif
 
 static void str_toupper(char *s)
 {
@@ -174,6 +177,7 @@ loadkb_parse_cb( char *pw, compound_rec_ptr compound, sign_rec_ptr top ){
   }
   if( compound ) compound_DSLvar_pushnew( compound, lsign );
   r = engine_dsl_DSLvar_declare( pw, lsign );
+  py_print_str( pw );
   return newtop;
 }
 
@@ -189,10 +193,12 @@ loadkb_parse( char *dsl_expr, compound_rec_ptr compound, sign_rec_ptr top, loadk
   if( *dsl_expr ){
     *dsl_expr++ = 0; // Terminate current first word in pw
   }
-  
+
   while( cont ){
+    py_print_str( dsl_expr );
     dsl_expr += strspn( dsl_expr, ws );
-    if( !*dsl_expr ){
+    py_print_str( dsl_expr );
+    if( !(*dsl_expr) ){
       // That was actually trailing whitespace at the end of the string
       break;
     }
@@ -402,7 +408,7 @@ parse_rule_conditions(parser_ctx_t *ctx,
         }
 
 	if( 0 == ctx->condition_count  ){
-	    printf( "ERROR Missing conditions in rule %s\n", ctx->rule->str );
+	    /* printf( "ERROR Missing conditions in rule %s\n", ctx->rule->str ); */
             set_state(ctx,
                       PARSE_ERROR);
             free(copy);
@@ -457,7 +463,7 @@ parse_rule_conditions(parser_ctx_t *ctx,
         case COND_DSL:
         {
             char cname[32];
-
+	    py_print_str( "COND DSL BEG" );
             snprintf(cname,
                      sizeof(cname),
                      "COMPOUND_%d",
@@ -478,6 +484,7 @@ parse_rule_conditions(parser_ctx_t *ctx,
                 compound,
                 copy);
 
+
 #ifdef ENGINE_DSL
 	    KB_Signs =
 	      loadkb_parse(
@@ -486,6 +493,7 @@ parse_rule_conditions(parser_ctx_t *ctx,
 			   KB_Signs,
 			   loadkb_parse_cb );
 #endif
+	    py_print_str( KB_Signs->str );
 
             rule_pushnewcond(
                 ctx->rule,
@@ -599,9 +607,6 @@ parse_info(parser_ctx_t *ctx,
 /*--------------------------------------------------------------------*/
 /* Main parser                                                        */
 /*--------------------------------------------------------------------*/
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 int loadkb_file(const char *filename, int resetp )
 {
     FILE *fp;
@@ -623,9 +628,10 @@ int loadkb_file(const char *filename, int resetp )
 
     while (getline(&line, &len, fp) != -1)
     {
+#ifndef NXPEM      
       if( PARSE_IDLE != ctx.state )
 	print_context( &ctx );
-      
+#endif      
         switch (ctx.state)
         {
             case PARSE_IDLE:
@@ -649,9 +655,9 @@ int loadkb_file(const char *filename, int resetp )
                 break;
 
             case PARSE_ERROR:
-                fprintf(stderr,
-                        "Parse error at line %d\n",
-                        ctx.line_no);
+                /* fprintf(stderr, */
+                /*         "Parse error at line %d\n", */
+                /*         ctx.line_no); */
 
                 free(line);
                 fclose(fp);
@@ -671,28 +677,100 @@ int loadkb_file(const char *filename, int resetp )
     return 0;
 }
 
+int loadkb_string(const char *text, int resetp)
+{
+    parser_ctx_t ctx = {
+        .state = PARSE_IDLE,
+        .line_no = 1
+    };
+
+    if (!text)
+        return 1;
+
+    if (resetp)
+        loadkb_reset();
+
+    const char *p = text;
+
+    while (*p)
+    {
+        const char *start = p;
+
+        /* Find end of line */
+        while (*p && *p != '\n')
+            p++;
+
+        size_t len = p - start;
+
+        /* Include the newline, like getline() does */
+        if (*p == '\n')
+            len++;
+
+        char *line = (char *) malloc(len + 1);
+        if (!line)
+            return 1;
+
+        memcpy(line, start, len);
+        line[len] = '\0';
+
+#ifndef NXPEM
+        if (PARSE_IDLE != ctx.state)
+            print_context(&ctx);
+#else
+	py_print_str( line );
+#endif
+        switch (ctx.state)
+        {
+        case PARSE_IDLE:
+            parse_idle(&ctx, line);
+            break;
+
+        case PARSE_RULE_CONDITIONS:
+            parse_rule_conditions(&ctx, line);
+            break;
+
+        case PARSE_RULE_ACTIONS:
+            parse_rule_actions(&ctx, line);
+            break;
+
+        case PARSE_ATTRIBUTES:
+            parse_attributes(&ctx, line);
+            break;
+
+        case PARSE_INFO:
+            parse_info(&ctx, line);
+            break;
+
+        case PARSE_ERROR:
+            free(line);
+            return 255;
+        }
+
+        free(line);
+
+        if (*p == '\n')
+            p++;
+
+        ctx.line_no++;
+    }
+
+    /* Keep track of KBs */
+    char *dup_name = strdup(text);
+    nxp_hash_set((char *)TOPIC_WKB, (char *)ATTR_WKB, dup_name);
+
+    return 0;
+}
+
 /*--------------------------------------------------------------------*/
 /* Simplified API                                                     */
 /*--------------------------------------------------------------------*/
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 sign_rec_ptr loadkb_get_allsigns(){ return KB_Signs; }
 
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 hypo_rec_ptr loadkb_get_allhypos(){ return KB_Hypos; }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 rule_rec_ptr loadkb_get_allrules(){ return KB_Rules; }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 int          loadkb_howmany( sign_rec_ptr top ){
   int count = 0;
   sign_rec_ptr s = top;
@@ -700,9 +778,6 @@ int          loadkb_howmany( sign_rec_ptr top ){
   return count;
 }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
 void         loadkb_reset(){
   if( KB_Hypos ) sign_iter(KB_Hypos,&hypo_del) ;
   if( KB_Signs ) sign_iter(KB_Signs,&sign_del) ;

@@ -9,9 +9,9 @@
 #include <string.h>
 #include <stdarg.h>
 #include "agenda.h"
-#ifdef NXPEM
-#include <emscripten.h>
-#endif
+/* #ifdef NXPEM */
+/* #include <emscripten.h> */
+/* #endif */
 
 
 /* extern engine_state_rec_ptr repl_getState(); */
