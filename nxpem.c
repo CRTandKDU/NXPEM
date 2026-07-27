@@ -1,3 +1,9 @@
+/**
+ * nxpem.c -- A Revival of the NEXPERT Callable Interface
+ *
+ * Written on 2026-07-27.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -8,7 +14,7 @@
 
 #include "nxp_hash.h"
 #include "nxp_evoke.h"
-
+#include "nxp_loadkb.h"
 #include <emscripten.h>
 #include "nxpem.h"
 
@@ -21,13 +27,19 @@ static  struct val_rec v_true  = { _KNOWN, _VAL_T_BOOL, (char *)0, _TRUE, 0, 0.0
 static  struct val_rec v_false = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0, 0 };
 
 //----------------------------------------------------------------------
+// NXPEM Loading KB by blocks
+//----------------------------------------------------------------------
+static parser_ctx_t *S_parser = NULL;
+
+//----------------------------------------------------------------------
 // NXPEM Marshalling strings to WASI-like host code 
 //----------------------------------------------------------------------
 
 #define NXPEM_MARSHALL_STRING_BEG 2
 #define NXPEM_MARSHALL_STRING_END 4
+#define NXPEM_MARSHALL_BUFSIZE  256
 
-static char  S_marshall_str[128] = {0};
+static char  S_marshall_str[NXPEM_MARSHALL_BUFSIZE] = {0};
 static short S_marshall_idx = 0;
 
 EM_JS( void, py_marshall_char, ( int32_t s ), {
@@ -60,9 +72,7 @@ void py_marshall_str( const char *buf ){
 }
 
 
-#ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
-#endif
 void nxpem_marshall_char( int32_t s ){
   if( NXPEM_MARSHALL_STRING_BEG == s ){
     S_marshall_idx = 0;
@@ -71,7 +81,7 @@ void nxpem_marshall_char( int32_t s ){
     S_marshall_str[S_marshall_idx] = 0x00;
   }
   else{
-    if( S_marshall_idx < 127 )
+    if( S_marshall_idx < (NXPEM_MARSHALL_BUFSIZE - 1) )
       S_marshall_str[S_marshall_idx++] = s;
   }
 }
@@ -81,43 +91,23 @@ void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
 #ifdef ENGINE_DSL_HOWERJFORTH
   if( _KNOWN == compound->val.status ) return;
   
-  int  err;
-  /* printf( "Getter compound %s (%d)\n", compound->str, */
-  /* 	   // (char *) (compound->dsl_expression) */
-  /* 	   *suspend */
-  /* 	   ); */
-  /* repl_log( buf ); */
-  // /* printf( buf ); */
-  // WHY?
-  // fixCR( compound->dsl_expression );
+  int err;
   int r = engine_dsl_eval_async( (const char *) compound->dsl_expression, &err, suspend );
 
-  /* printf( "FORTH Res %d Err %d Susp %d\n", r, err, *suspend ); */
-  /* repl_log( buf ); */
-  // /* printf( buf ); */
-  /* printf( "Post-eval compound %s (%d)\n", compound->str, */
-  /* 	   // (char *) (compound->dsl_expression) */
-  /* 	   *suspend */
-  /* 	   ); */
-  /* repl_log( buf ); */
   switch( err ){
   case 0:
     // Ignore DSL evaluation if a question is pending! Re-evaluation will happen later.
     if( _FALSE == *suspend ){
-      // sprintf( buf, "Getter compound %s (%d)\n", compound->str,
-      // 	       // (char *) (compound->dsl_expression)
-      // 	       *suspend
-      // 	       );
-      // /* printf( buf ); */
       sign_set_default( (sign_rec_ptr)compound, r ? &v_true : &v_false );
-      // sprintf( buf, "Compound Status %d Type %d\n", compound->val.status, compound->val.type );
-      // /* printf( "%s", buf ); */
     }
     break;
   } 
 #endif  
 }
 
+//----------------------------------------------------------------------
+// NXPEM Callbacks to host language: js, Python
+//----------------------------------------------------------------------
 
 // clang-format off 
 EM_JS(void, cb_question, (const char* str), {
@@ -130,13 +120,14 @@ EM_JS(void, cb_question, (const char* str), {
 
 // clang-format off 
 EM_JS(void, cb_py_question, ( int32_t suspend ), {
-    //
+    // A empty stub for the actuab cb in the host language
 });
 // clang-format on
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   *suspend = _TRUE;
   py_marshall_str( sign->str );
+  // Call the appropriate cb
   cb_py_question( (int32_t) suspend );
 }
 
@@ -144,9 +135,11 @@ void  repl_log( const char *s ){
   /* printf( "Log: %s\n", s ); */
 }
 
-#ifdef NXPEM
+//----------------------------------------------------------------------
+// NXPEM Remembering the Callable Interface
+//----------------------------------------------------------------------
+
 EMSCRIPTEN_KEEPALIVE
-#endif
 AtomId nxpem_getatomid( const char *name, int nxptype ){
   sign_rec_ptr res = NULL;
   switch( nxptype ){
@@ -183,9 +176,8 @@ void nxpem_unsuggest( hypo_rec_ptr hypo )
     }
 }
 
-#ifdef NXPEM
+
 EMSCRIPTEN_KEEPALIVE
-#endif
 int nxpem_suggest( AtomId h, int priority ){
   hypo_rec_ptr hypo = (hypo_rec_ptr) h;
   if( hypo ){
@@ -211,6 +203,7 @@ int nxpem_suggest( AtomId h, int priority ){
   }
 }
 
+
 //----------------------------------------------------------------------
 // NXP prologue
 //----------------------------------------------------------------------
@@ -227,7 +220,6 @@ void prologue(){
   py_print_str( "Prologue: Bighash inited." );
   evoke_init();
   py_print_str( "Prologue: Secondary agenda inited." );
-  /* printf( "Init -- Done\n" ); */
 }
 
 //----------------------------------------------------------------------
@@ -251,9 +243,8 @@ void epilogue(){
   /* printf( "Shutdown -- Complete\n" ); */
 }
 
-#ifdef NXPEM
+
 EMSCRIPTEN_KEEPALIVE
-#endif
 int32_t nxpem_control( int32_t ctrl ){
   switch( ctrl ){
   case NXP_CTRL_INIT:
@@ -271,16 +262,76 @@ int32_t nxpem_control( int32_t ctrl ){
   return (int32_t) 0;
 }
 
-#ifdef NXPEM
-EMSCRIPTEN_KEEPALIVE
-#endif
-int32_t nxpem_loadkb_file(){
-  char kb[] = "#+BEGIN_RULE diagnostic_1\n$CRT_and_KDU nxp@ s( AGREE) compare 0=\n$task nxp@ s( FLUID_TRANSFER) compare 0= invert\nNO ALARM_TANK_WAS_P1_OR_P2\npressure_out_P3 nxp@ pressure_out_P4 nxp@ =\nTHEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n#+END_RULE\n";
+int32_t nxpem_loadkb_allblocks(){
+  /* char kb[] = "#+BEGIN_RULE diagnostic_1\n$CRT_and_KDU nxp@ s( AGREE) compare 0=\n$task nxp@ s( FLUID_TRANSFER) compare 0= invert\nNO ALARM_TANK_WAS_P1_OR_P2\npressure_out_P3 nxp@ pressure_out_P4 nxp@ =\nTHEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n#+END_RULE\n"; */
+  char *kb =  S_marshall_str;
   py_print_str( kb );
   int32_t ret = loadkb_string( kb, 1 );
-  py_print_str( "LOADKB loaded" );
   ret = loadkb_howmany( loadkb_get_allhypos() );
-  py_print_str( "LOADKB END" );
+
+#ifdef NXPEM
+  char msg[64] = {0};
+  snprintf( msg, sizeof(msg), "LoadKB hypos=%d", ret );
+  py_print_str( msg );
+  
+  sign_rec_ptr s = loadkb_get_allhypos();
+  while( s ){
+    py_print_str( s->str );
+    s = s->next;
+  }
+  
+#endif // NXPEM
+  
+  return ret;
+}
+
+// For testing purposes
+EMSCRIPTEN_KEEPALIVE
+int32_t nxpem_loadkb_counts(){
+  int32_t reth = loadkb_howmany( loadkb_get_allhypos() );
+  int32_t rets = loadkb_howmany( loadkb_get_allsigns() );
+#ifdef NXPEM
+  char msg[64] = {0};
+  snprintf( msg, sizeof(msg), "LoadKB hypos=%d, signs=%d", reth, rets );
+  py_print_str( msg );
+
+  sign_rec_ptr s = loadkb_get_allhypos();
+  while( s ){
+    py_print_str( s->str );
+    s = s->next;
+  }
+  py_print_str( "---" );
+  s = loadkb_get_allsigns();
+  while( s ){
+    py_print_str( s->str );
+    s = s->next;
+  }
+  py_print_str( "---" );
+#endif // NXPEM
+
+  return reth + rets;
+}
+
+
+EMSCRIPTEN_KEEPALIVE
+int32_t nxpem_loadkb_string( int32_t newp ){
+  if( newp ){
+    if( S_parser )
+      free( S_parser );
+    S_parser = (parser_ctx_t *) malloc( sizeof( parser_ctx_t ) );
+    S_parser->state = PARSE_IDLE;
+    S_parser->line_no = 1;
+    loadkb_reset();
+  }
+
+  int ret = 1;
+  char *p;
+  if( S_parser ){
+    if (0 == *S_marshall_str)
+        return 1;
+    p = S_marshall_str;
+    ret = loadkb_string_block( p, S_parser );
+  }
   
   return ret;
 }

@@ -66,12 +66,32 @@ async def main() -> None:
 
     # Get a reference to the exported functions
     NXPEM_MARSHALL_CHAR = exports["nxpem_marshall_char"]
-    NXP_LoadKB          = exports["nxpem_loadkb_file"]
+    NXP_LoadKB          = exports["nxpem_loadkb_string"]
+    NXP_LoadKB_counts   = exports["nxpem_loadkb_counts"]
     NXP_Control         = exports["nxpem_control"]
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )
+    # Pass the KB as a string
     #
-    print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB() );
+    # em_marshall_str( "#+BEGIN_RULE diagnostic_1\n$CRT_and_KDU nxp@ s( AGREE) compare 0=\n$task nxp@ s( FLUID_TRANSFER) compare 0= invert\nNO ALARM_TANK_WAS_P1_OR_P2\npressure_out_P3 nxp@ pressure_out_P4 nxp@ =\nTHEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n#+END_RULE\n", NXPEM_MARSHALL_CHAR )
+    # print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB() );
+    #
+    kb = [ "#+BEGIN_RULE diagnostic_1\n",
+           "$CRT_and_KDU nxp@ s( AGREE) compare 0=\n",
+           "$task nxp@ s( FLUID_TRANSFER) compare 0= invert\n",
+           "NO ALARM_TANK_WAS_P1_OR_P2\n",
+           "pressure_out_P3 nxp@ pressure_out_P4 nxp@ =\n",
+           "THEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n",
+           "#+END_RULE\n"
+          ]
+    for line_no in range( len(kb) ):
+        em_marshall_str( kb[line_no], NXPEM_MARSHALL_CHAR )
+        if 0 == line_no:
+            print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB( 1 ) )
+        else:
+            print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB( 0 ) )
+            
+    NXP_LoadKB_counts()
     
     # ignore = NXP_LoadKB( store, 'satfault.org', 1 )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_EXIT", NXP_Control( NXP_CTRL_EXIT ) )

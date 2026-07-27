@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef NXPEM
 extern void py_print_str( const char * );
+#endif // NXPEM
 
 #define SHADOW    (7)     /**< start location of shadow registers */
 #define MIN(X, Y) ((X) > (Y) ? (Y) : (X))
@@ -39,35 +41,23 @@ size_t embed_length(embed_t const * const h)       { return embed_cells(h) * siz
 int embed_load_buffer(embed_t *h, const uint8_t *buf, size_t length) {
 	assert(h && buf);
 
-	py_print_str("before memcpy");
-	char tmp[128]={0};
-	snprintf(tmp, sizeof(tmp),
-		 "source bytes=%u %u %u %u %u %u %u %u",
-		 buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
-
-	py_print_str(tmp);
-
-	snprintf(tmp, sizeof(tmp),
-		 "buf=%p h->m=%p len=%zu",
-		 (const void *)buf,
-		 h->m,
-		 MIN(EMBED_CORE_SIZE * 2, length));
-	py_print_str(tmp);
-
-	/* uint8_t *dst = (uint8_t *)h->m; */
-	
-	/* for (size_t i = 0; i < 16; i++) */
-	/*   dst[i] = buf[i]; */
-	
-	/* cell_t *m = (cell_t *)h->m; */
-	
+#ifdef NXPEM
+	/* py_print_str("before memcpy"); */
+	/* char tmp[128]={0}; */
 	/* snprintf(tmp, sizeof(tmp), */
-	/* 	 "manual copy m=%u %u %u %u", */
-	/* 	 (unsigned)m[0], */
-	/* 	 (unsigned)m[1], */
-	/* 	 (unsigned)m[2], */
-	/* 	 (unsigned)m[3]); */
-	/* py_print_str(tmp);	 */
+	/* 	 "source bytes=%u %u %u %u %u %u %u %u", */
+	/* 	 buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]); */
+
+	/* py_print_str(tmp); */
+
+	/* snprintf(tmp, sizeof(tmp), */
+	/* 	 "buf=%p h->m=%p len=%zu", */
+	/* 	 (const void *)buf, */
+	/* 	 h->m, */
+	/* 	 MIN(EMBED_CORE_SIZE * 2, length)); */
+	/* py_print_str(tmp); */
+#endif // NXPEM
+
 #ifndef NXPEM_MEMCPY
 	memcpy(h->m, buf, MIN(EMBED_CORE_SIZE*2, length));
 #else
@@ -79,90 +69,97 @@ int embed_load_buffer(embed_t *h, const uint8_t *buf, size_t length) {
 
 	cell_t *m = (cell_t *)h->m;
 
-	snprintf(tmp, sizeof(tmp),
-		 "after memcpy m[0..7]=%u %u %u %u %u %u %u %u",
-		 m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]);
-	py_print_str(tmp);
+#ifdef NXPEM
+	/* snprintf(tmp, sizeof(tmp), */
+	/* 	 "after memcpy m[0..7]=%u %u %u %u %u %u %u %u", */
+	/* 	 m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7]); */
+	/* py_print_str(tmp); */
+#endif // NXPEM
 	
 	embed_normalize(h, length/2);
 	return length < 128 ? -70 /* read-file IOR */ : 0; /* minimum size checks, 128 bytes */
 }
 
+#ifdef NXPEM
 #define OFFSET(field) \
   snprintf(buf, sizeof(buf),\
 	   "default  size=%zu",			\
 	   offsetof(embed_t, field));		\
   py_print_str( buf )
+#endif // NXPEM
 
 int embed_default(embed_t *h)
 {
     assert(h && h->m);
     h->o = embed_opt_default();
 
-    char buf[64];
-    OFFSET(m);
-    OFFSET(o);
+#ifdef NXPEM
+    /* char buf[64]; */
+    /* py_print_str("loading default block"); */
+    /* snprintf(buf, sizeof(buf), */
+    /* 	     "default block=%p size=%zu", */
+    /* 	     embed_default_block, */
+    /* 	     embed_default_block_size); */
+    /* py_print_str( buf ); */
+#endif // NXPEM
 
-    check_image();
-
-    py_print_str("loading default block");
-    snprintf(buf, sizeof(buf),
-	     "default block=%p size=%zu",
-	     embed_default_block,
-	     embed_default_block_size);
-    py_print_str( buf );
     int r = embed_load_buffer(
 			      h,
 			      embed_default_block,
 			      embed_default_block_size);
-    snprintf(buf, sizeof(buf),
-         "embed_load_buffer returned %d",
-         r);
-    py_print_str(buf);
+#ifdef NXPEM
+    /* snprintf(buf, sizeof(buf), */
+    /*      "embed_load_buffer returned %d", */
+    /*      r); */
+    /* py_print_str(buf); */
+#endif // NXPEM
 
     cell_t *mem = (cell_t *)h->m;
 
-    snprintf(buf, sizeof(buf),
-	     "m=%p first cells=%u %u %u %u",
-	     h->m,
-	     (unsigned)mem[0],
-	     (unsigned)mem[1],
-	     (unsigned)mem[2],
-	     (unsigned)mem[3]);
+#ifdef NXPEM
+    /* snprintf(buf, sizeof(buf), */
+    /* 	     "m=%p first cells=%u %u %u %u", */
+    /* 	     h->m, */
+    /* 	     (unsigned)mem[0], */
+    /* 	     (unsigned)mem[1], */
+    /* 	     (unsigned)mem[2], */
+    /* 	     (unsigned)mem[3]); */
     
-    py_print_str(buf);
+    /* py_print_str(buf); */
  
-    snprintf(buf, sizeof(buf),
-	     "sizeof(cell_t)=%zu sizeof(embed_t)=%zu",
-	     sizeof(cell_t),
-	     sizeof(embed_t));
-    py_print_str(buf);
+    /* snprintf(buf, sizeof(buf), */
+    /* 	     "sizeof(cell_t)=%zu sizeof(embed_t)=%zu", */
+    /* 	     sizeof(cell_t), */
+    /* 	     sizeof(embed_t)); */
+    /* py_print_str(buf); */
 
-    snprintf(buf, sizeof(buf),
-         "sizeof(embed_opt_t)=%zu sizeof(void*)=%zu",
-         sizeof(embed_opt_t),
-         sizeof(void *));
-    py_print_str(buf);
+    /* snprintf(buf, sizeof(buf), */
+    /*      "sizeof(embed_opt_t)=%zu sizeof(void*)=%zu", */
+    /*      sizeof(embed_opt_t), */
+    /*      sizeof(void *)); */
+    /* py_print_str(buf); */
 
-    snprintf(buf,sizeof(buf),
-	     "EMBED_CORE_SIZE=%lu allocated bytes=%zu",
-	     EMBED_CORE_SIZE,
-	     EMBED_CORE_SIZE*sizeof(cell_t));
-    py_print_str(buf);
+    /* snprintf(buf,sizeof(buf), */
+    /* 	     "EMBED_CORE_SIZE=%lu allocated bytes=%zu", */
+    /* 	     EMBED_CORE_SIZE, */
+    /* 	     EMBED_CORE_SIZE*sizeof(cell_t)); */
+    /* py_print_str(buf); */
     
-    snprintf(buf,sizeof(buf),
-	     "big endian=%d",
-	     is_big_endian());
-    py_print_str(buf);
+    /* snprintf(buf,sizeof(buf), */
+    /* 	     "big endian=%d", */
+    /* 	     is_big_endian()); */
+    /* py_print_str(buf); */
 
-    snprintf(buf, sizeof(buf),
-         "CELL_MAX=%u",
-         (unsigned)((cell_t)-1));
+    /* snprintf(buf, sizeof(buf), */
+    /*      "CELL_MAX=%u", */
+    /*      (unsigned)((cell_t)-1)); */
 
-    py_print_str(buf);
+    /* py_print_str(buf); */
+#endif // NXPEM
     
     return r;
 }
+
 
 /* int embed_default(embed_t *h) { */
 /* 	assert(h && h->m); */
