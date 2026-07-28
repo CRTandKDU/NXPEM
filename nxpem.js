@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmps43fbtk7.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmprgwx0dfv.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -194,21 +194,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmps43fbtk7.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpr_j2cv9k.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmprgwx0dfv.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp0omrm2pj.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpr_j2cv9k.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpz180x89_.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmp0omrm2pj.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmph8u5q949.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpz180x89_.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmph8u5q949.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -1110,6 +1110,8 @@ function py_marshall_char(s) { }
 function py_print(s) { }
 function cb_question(str) { let resp = prompt('What is the value of ' + UTF8ToString(str), 'I don\'t know!' ); if( null != resp ){ console.log( 'Set value to ' + resp ); } }
 function cb_py_question(suspend) { }
+function cb_py_on_agenda_push() { }
+function cb_py_on_agenda_pop() { }
 
 // end include: preamble.js
 
@@ -4376,6 +4378,10 @@ var wasmImports = {
   /** @export */
   _emscripten_memcpy_js: __emscripten_memcpy_js,
   /** @export */
+  cb_py_on_agenda_pop: cb_py_on_agenda_pop,
+  /** @export */
+  cb_py_on_agenda_push: cb_py_on_agenda_push,
+  /** @export */
   cb_py_question: cb_py_question,
   /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
@@ -4397,7 +4403,7 @@ var wasmImports = {
 var wasmExports = createWasm();
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _nxpem_marshall_char = Module['_nxpem_marshall_char'] = createExportWrapper('nxpem_marshall_char', 1);
-var _nxpem_getatomid = Module['_nxpem_getatomid'] = createExportWrapper('nxpem_getatomid', 2);
+var _nxpem_getatomid = Module['_nxpem_getatomid'] = createExportWrapper('nxpem_getatomid', 1);
 var _nxpem_suggest = Module['_nxpem_suggest'] = createExportWrapper('nxpem_suggest', 2);
 var _nxpem_control = Module['_nxpem_control'] = createExportWrapper('nxpem_control', 1);
 var _nxpem_loadkb_counts = Module['_nxpem_loadkb_counts'] = createExportWrapper('nxpem_loadkb_counts', 0);
@@ -4411,10 +4417,10 @@ var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExpor
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
 var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 5);
-var _embed_default_block_size = Module['_embed_default_block_size'] = 72632;
-var _embed_default_block = Module['_embed_default_block'] = 67216;
-var ___start_em_js = Module['___start_em_js'] = 85392;
-var ___stop_em_js = Module['___stop_em_js'] = 85630;
+var _embed_default_block_size = Module['_embed_default_block_size'] = 72872;
+var _embed_default_block = Module['_embed_default_block'] = 67456;
+var ___start_em_js = Module['___start_em_js'] = 85632;
+var ___stop_em_js = Module['___stop_em_js'] = 85890;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===

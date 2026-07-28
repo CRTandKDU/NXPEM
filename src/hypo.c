@@ -11,6 +11,10 @@
 
 #include "agenda.h"
 
+#ifdef NXPEM
+extern void py_print_str( const char * );
+#endif // NXPEM
+
 /* ------------------------------------------------------------------------- */
 /* Builders                                                                  */
 /* ------------------------------------------------------------------------- */
@@ -29,7 +33,12 @@ hypo_rec_ptr hypo_pushnew(
                      sizeof(void *));
 
     hypo->len_type =
-        (unsigned short)strlen(name) | HYPO_MASK;
+        (unsigned short)strlen(hypo->str) | HYPO_MASK;
+
+    char msg[128]={0};
+    snprintf( msg, sizeof(msg), "HYPO ushort=%lu, len=%lu, mask=%hu, lentype=%d",
+	      sizeof(unsigned short), strlen(name), HYPO_MASK, hypo->len_type );
+    py_print_str( msg );
 
     /*
      * Hypotheses manage getters differently from signs.

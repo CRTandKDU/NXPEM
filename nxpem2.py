@@ -48,15 +48,26 @@ def em_marshall_str( s: str, func ) -> None:
         func( ord(c) )
     func( 4 )
 
+# CALLBACKS    
+def cb_on_agenda_push():
+    print( "AGENDA Push:", marshall_str )
 
+
+def cb_on_agenda_pop():
+    print( "AGENDA Pop:", marshall_str )
+
+    
 def cb_question( suspend ) -> None:
     print( "Question:", marshall_str, suspend )
 
     
 async def main() -> None:
     callbacks = {
-        "cb_question": cb_question,
-        "py_print": py_print
+        "cb_py_on_agenda_push": cb_on_agenda_push,
+        "cb_py_on_agenda_pop":  cb_on_agenda_pop,
+        "cb_py_question":       cb_question,
+        "py_marshall_char":     py_marshall_char,
+        "py_print":             py_print
     }
 
     # Load the module. Exports come back as a dict of callables.
@@ -66,6 +77,8 @@ async def main() -> None:
 
     # Get a reference to the exported functions
     NXPEM_MARSHALL_CHAR = exports["nxpem_marshall_char"]
+    NXP_GetAtomId       = exports["nxpem_getatomid"]
+    NXP_Suggest         = exports["nxpem_suggest"]
     NXP_LoadKB          = exports["nxpem_loadkb_string"]
     NXP_LoadKB_counts   = exports["nxpem_loadkb_counts"]
     NXP_Control         = exports["nxpem_control"]
@@ -92,6 +105,14 @@ async def main() -> None:
             print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB( 0 ) )
             
     NXP_LoadKB_counts()
+
+    em_marshall_str( "DECREASE_DUE_TO_THERMAL_CONDITIONS", NXPEM_MARSHALL_CHAR )
+    hypo_id = NXP_GetAtomId( NXP_ATYPE_HYPO )
+    # print( "hypo_id=", hypo_id )
+
+    res = NXP_Suggest( hypo_id, NXP_SPRIO_SUG )
+
+    res = NXP_Control( NXP_CTRL_RESUME )
     
     # ignore = NXP_LoadKB( store, 'satfault.org', 1 )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_EXIT", NXP_Control( NXP_CTRL_EXIT ) )

@@ -64,11 +64,11 @@ void py_print_str( const char *buf ){
 
 void py_marshall_str( const char *buf ){
   short i;
-  py_print( NXPEM_MARSHALL_STRING_BEG );
+  py_marshall_char( NXPEM_MARSHALL_STRING_BEG );
   for( i=0; i<strlen( buf ); i++ ){
     py_marshall_char( buf[i] );
   }
-  py_print( NXPEM_MARSHALL_STRING_END );
+  py_marshall_char( NXPEM_MARSHALL_STRING_END );
 }
 
 
@@ -88,6 +88,7 @@ void nxpem_marshall_char( int32_t s ){
 
 
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
+  py_print_str( compound->dsl_expression );
 #ifdef ENGINE_DSL_HOWERJFORTH
   if( _KNOWN == compound->val.status ) return;
   
@@ -120,27 +121,27 @@ EM_JS(void, cb_question, (const char* str), {
 
 // clang-format off 
 EM_JS(void, cb_py_question, ( int32_t suspend ), {
-    // A empty stub for the actuab cb in the host language
+    // A empty stub for the actual cb in the host language
 });
 // clang-format on
 
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   *suspend = _TRUE;
   py_marshall_str( sign->str );
-  // Call the appropriate cb
   cb_py_question( (int32_t) suspend );
 }
 
 void  repl_log( const char *s ){
-  /* printf( "Log: %s\n", s ); */
+  char msg[128]={0};
+  snprintf( msg, sizeof(msg), "LOG: %s", s );
+  py_print_str( msg );
 }
 
 //----------------------------------------------------------------------
 // NXPEM Remembering the Callable Interface
 //----------------------------------------------------------------------
 
-EMSCRIPTEN_KEEPALIVE
-AtomId nxpem_getatomid( const char *name, int nxptype ){
+AtomId nxpem__getatomid( const char *name, int nxptype ){
   sign_rec_ptr res = NULL;
   switch( nxptype ){
   case NXP_ATYPE_HYPO:
@@ -153,8 +154,20 @@ AtomId nxpem_getatomid( const char *name, int nxptype ){
     res = sign_find( name, (sign_rec_ptr) loadkb_get_allrules() );
     break;
   }
+  //
+
   return (AtomId) res;
 }
+
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+AtomId nxpem_getatomid( int nxptype ){
+  char *name = S_marshall_str;
+  return nxpem__getatomid( name, nxptype );
+}
+
 
 void nxpem_unsuggest( hypo_rec_ptr hypo )
 {
@@ -177,7 +190,9 @@ void nxpem_unsuggest( hypo_rec_ptr hypo )
 }
 
 
+#ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
 int nxpem_suggest( AtomId h, int priority ){
   hypo_rec_ptr hypo = (hypo_rec_ptr) h;
   if( hypo ){
@@ -205,6 +220,51 @@ int nxpem_suggest( AtomId h, int priority ){
 
 
 //----------------------------------------------------------------------
+// NXP control events callbacks
+//----------------------------------------------------------------------
+void cb_on_gate( sign_rec_ptr sign, short val ){
+  //
+  engine_default_on_gate( sign, val );
+}
+
+
+// clang-format off 
+EM_JS(void, cb_py_on_agenda_push, (), {
+    // A empty stub for the actual cb in the host language
+});
+// clang-format on
+
+void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
+  py_marshall_str( sign->str );
+  cb_py_on_agenda_push();
+  //
+  engine_default_on_agenda_push( sign, val );
+}
+
+
+// clang-format off 
+EM_JS(void, cb_py_on_agenda_pop, (), {
+    // A empty stub for the actual cb in the host language
+});
+// clang-format on
+
+void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
+  py_marshall_str( sign->str );
+  cb_py_on_agenda_pop();
+  //
+  engine_default_on_agenda_pop( sign, val );
+}
+
+
+void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
+}
+
+
+void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
+}
+
+
+//----------------------------------------------------------------------
 // NXP prologue
 //----------------------------------------------------------------------
 void prologue(){
@@ -212,6 +272,14 @@ void prologue(){
   S_State		= (engine_state_rec_ptr)malloc( sizeof( struct engine_state_rec ) );
   S_State->current_sign = (sign_rec_ptr)0;
   S_State->agenda	= (cell_rec_ptr)0;
+
+  engine_register_effects( &engine_default_on_get,
+			   &cb_on_set,
+			   &cb_on_gate,
+			   &cb_on_agenda_push,
+			   &cb_on_agenda_pop,
+			   &cb_on_endsession
+			   );
 
   // Set up DSL
   ignore = engine_dsl_init();
@@ -244,7 +312,9 @@ void epilogue(){
 }
 
 
+#ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
 int32_t nxpem_control( int32_t ctrl ){
   switch( ctrl ){
   case NXP_CTRL_INIT:
@@ -261,6 +331,10 @@ int32_t nxpem_control( int32_t ctrl ){
   }
   return (int32_t) 0;
 }
+
+//----------------------------------------------------------------------
+// NXP Marshalling KBs
+//----------------------------------------------------------------------
 
 int32_t nxpem_loadkb_allblocks(){
   /* char kb[] = "#+BEGIN_RULE diagnostic_1\n$CRT_and_KDU nxp@ s( AGREE) compare 0=\n$task nxp@ s( FLUID_TRANSFER) compare 0= invert\nNO ALARM_TANK_WAS_P1_OR_P2\npressure_out_P3 nxp@ pressure_out_P4 nxp@ =\nTHEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n#+END_RULE\n"; */
@@ -286,7 +360,9 @@ int32_t nxpem_loadkb_allblocks(){
 }
 
 // For testing purposes
+#ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
 int32_t nxpem_loadkb_counts(){
   int32_t reth = loadkb_howmany( loadkb_get_allhypos() );
   int32_t rets = loadkb_howmany( loadkb_get_allsigns() );
@@ -298,12 +374,16 @@ int32_t nxpem_loadkb_counts(){
   sign_rec_ptr s = loadkb_get_allhypos();
   while( s ){
     py_print_str( s->str );
+    snprintf( msg, sizeof(msg), "len_type & TYPE_MASK = %d", s->len_type & TYPE_MASK );
+    py_print_str( msg );
     s = s->next;
   }
   py_print_str( "---" );
   s = loadkb_get_allsigns();
   while( s ){
     py_print_str( s->str );
+    snprintf( msg, sizeof(msg), "len_type & TYPE_MASK = %d", s->len_type & TYPE_MASK );
+    py_print_str( msg );
     s = s->next;
   }
   py_print_str( "---" );

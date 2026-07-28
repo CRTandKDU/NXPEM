@@ -71,7 +71,7 @@ $(NXP_BUILDDIR)/%.clang.o: $(DSL_SRCDIR)/%.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(CEXTRAFLAGS)
 
 
-$(NXP_BUILDDIR)/%.o: $(NXP_SRCDIR)/%.c
+$(NXP_BUILDDIR)/%.o: $(NXP_SRCDIR)/%.c $(NXP_SRCDIR)/agenda.h
 	$(EM) -c -o $@ $< $(CFLAGS) $(CEXTRAFLAGS) $(DSL_CFLAGS) $(EMSDK_FLAGS)
 
 $(NXP_BUILDDIR)/%.o: $(DSL_SRCDIR)/%.c
