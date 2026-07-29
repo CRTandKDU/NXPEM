@@ -41,6 +41,7 @@ void engine_default_on_set( sign_rec_ptr sign,  struct val_rec * val ){
     engine_forward_sign( sign );
     break;
   }
+  py_print_str( "ENGINE default_on_set" );
 }
 
 void engine_default_on_gate(hypo_rec_ptr hypo, short val) {
@@ -272,29 +273,29 @@ void engine_resume_knowcess( engine_state_rec_ptr state ){
  next:
   suspend = _FALSE;
   if( state->agenda ){
-    py_print_str( "KNOWCESS: Agenda" );
+    /* py_print_str( "KNOWCESS: Agenda" ); */
     cell_rec_ptr cell = state->agenda;
     if( _UNKNOWN == cell->val.status ){
-      py_print_str( "KNOWCESS: Agenda UNK cell" );
+      /* py_print_str( "KNOWCESS: Agenda UNK cell" ); */
       // Either a SUGGEST or COMPOUND eval operation
       if( _UNKNOWN == cell->sign_or_hypo->val.status ){
 
-	char msg[128] = {0};
-	snprintf( msg, sizeof(msg), "KNOWCESS: Agenda UNK cell sign/hypo %d",  cell->sign_or_hypo->len_type & TYPE_MASK );
-	py_print_str( msg );
-	snprintf( msg, sizeof(msg), "KNOWCESS: Agenda UNK cell %s",  cell->sign_or_hypo->str );
-	py_print_str( msg );
+	/* char msg[128] = {0}; */
+	/* snprintf( msg, sizeof(msg), "KNOWCESS: Agenda UNK cell sign/hypo %d",  cell->sign_or_hypo->len_type & TYPE_MASK ); */
+	/* py_print_str( msg ); */
+	/* snprintf( msg, sizeof(msg), "KNOWCESS: Agenda UNK cell %s",  cell->sign_or_hypo->str ); */
+	/* py_print_str( msg ); */
 
 	switch( cell->sign_or_hypo->len_type & TYPE_MASK ){
 	case COMPOUND_MASK:
-	  py_print_str( "KNOWCESS: Agenda compound" );
+	  /* py_print_str( "KNOWCESS: Agenda compound" ); */
 	  engine_backward_compound( (compound_rec_ptr) cell->sign_or_hypo, &suspend );
 	  if( _FALSE == suspend )
 	    goto next;
 	  break;
 
 	case HYPO_MASK:
-	  py_print_str( "KNOWCESS: Agenda hypo" );
+	  /* py_print_str( "KNOWCESS: Agenda hypo" ); */
 	  engine_backward_hypo( (hypo_rec_ptr) cell->sign_or_hypo, &suspend );
 	  if( _FALSE == suspend )
 	    goto next;
@@ -315,8 +316,9 @@ void engine_resume_knowcess( engine_state_rec_ptr state ){
     }
   }
   
-  if( ( (cell_rec_ptr)0 == state->agenda ) && S_on_endsession )
+  if( ( (cell_rec_ptr)0 == state->agenda ) && S_on_endsession ){
     S_on_endsession( (sign_rec_ptr) NULL, NULL );
+  }
 }
 
 //----------------------------------------------------------------------

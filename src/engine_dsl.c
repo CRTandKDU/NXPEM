@@ -23,7 +23,9 @@
 
 #include "agenda.h"
 
+#ifdef NXPEM
 extern void py_print_str( const char * );
+#endif // NXPEM
 extern void repl_log( const char *s );
 
 #ifdef ENGINE_DSL_HOWERJFORTH
@@ -727,7 +729,7 @@ static vm_extension_t *vm_extension_new(void)
     }
 
 #ifdef NXPEM
-    py_print_str("embed_new OK");
+    /* py_print_str("embed_new OK"); */
 #endif // NXPEM
 
     v->callbacks	= callbacks;

@@ -21,3 +21,33 @@ Handles multiline printf calls."
            ;; Unbalanced parentheses; continue searching.
            (goto-char start)
            (forward-char 1)))))))
+
+(defun my-wrap-region-with-ifdef (macro-name)
+  "Surround the current region with #ifdef MACRO-NAME / #endif lines.
+
+The region is expanded to whole lines, and #ifdef/#endif are
+inserted as separate lines around it."
+  (interactive "sMacro name for #ifdef: ")
+  (unless (use-region-p)
+    (user-error "No active region"))
+  (let* ((start (region-beginning))
+         (end (region-end)))
+    (save-excursion
+      ;; Expand to full lines
+      (goto-char start)
+      (setq start (line-beginning-position))
+      (goto-char end)
+      ;; If end is at the beginning of a line, don't include that extra line
+      (unless (bolp)
+        (forward-line 1))
+      (setq end (point))
+
+      ;; Insert #endif after the region first (so start offset stays valid)
+      (goto-char end)
+      (insert (format "#endif // %s\n" macro-name))
+
+      ;; Insert #ifdef before the region
+      (goto-char start)
+      (insert (format "#ifdef %s\n" macro-name)))))
+
+(global-set-key (kbd "C-c i") #'my-wrap-region-with-ifdef)

@@ -88,7 +88,6 @@ void nxpem_marshall_char( int32_t s ){
 
 
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend ){
-  py_print_str( compound->dsl_expression );
 #ifdef ENGINE_DSL_HOWERJFORTH
   if( _KNOWN == compound->val.status ) return;
   
@@ -120,7 +119,7 @@ EM_JS(void, cb_question, (const char* str), {
 // clang-format on
 
 // clang-format off 
-EM_JS(void, cb_py_question, ( int32_t suspend ), {
+EM_JS(void, cb_py_question, ( int32_t sign_id ), {
     // A empty stub for the actual cb in the host language
 });
 // clang-format on
@@ -128,7 +127,7 @@ EM_JS(void, cb_py_question, ( int32_t suspend ), {
 void getter_sign( sign_rec_ptr sign, int *suspend ){
   *suspend = _TRUE;
   py_marshall_str( sign->str );
-  cb_py_question( (int32_t) suspend );
+  cb_py_question( (int32_t) sign );
 }
 
 void  repl_log( const char *s ){
@@ -140,6 +139,30 @@ void  repl_log( const char *s ){
 //----------------------------------------------------------------------
 // NXPEM Remembering the Callable Interface
 //----------------------------------------------------------------------
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
+  sign_rec_ptr s = (sign_rec_ptr) sign;
+  switch( info ){
+  case NXP_AINFO_VALUETYPE:
+    switch( s->val.type ){
+    case _VAL_T_BOOL:
+      return NXP_VTYPE_BOOL;
+      break;
+    case _VAL_T_INT:
+    case _VAL_T_FLOAT:
+      return NXP_VTYPE_NUM;
+      break;
+    case _VAL_T_STR:
+      return NXP_VTYPE_STR;
+      break;
+    }
+    break;
+  }
+  return 0;
+}
+
 
 AtomId nxpem__getatomid( const char *name, int nxptype ){
   sign_rec_ptr res = NULL;
@@ -218,6 +241,45 @@ int nxpem_suggest( AtomId h, int priority ){
   }
 }
 
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int nxpem_volunteer( AtomId sign, int32_t vtyp, int32_t val ){
+  sign_rec_ptr s = (sign_rec_ptr) sign;
+
+  char msg[128]={};
+  
+  //
+  switch( vtyp ){
+  case NXP_VTYPE_BOOL:
+    if( _VAL_T_BOOL == s->val.type ){
+      sign_set_default( s, val ? &v_true : &v_false );
+      return 1;
+    }
+    break;
+  case NXP_VTYPE_NUM:
+    if( _VAL_T_INT == s->val.type ){
+      struct val_rec v = { _KNOWN, _VAL_T_INT, (char *)0, 0, val, 0.0 };
+      sign_set_default( s, &v );
+      snprintf( msg, sizeof(msg),
+		"VOLUNTEER %s num=%d", s->str, val );
+      py_print_str( msg );
+      return 1;
+    }
+    break;
+  case NXP_VTYPE_STR:
+    if( _VAL_T_STR == s->val.type ){
+      struct val_rec v = { _KNOWN, _VAL_T_STR, (char *) S_marshall_str, 0, 0, 0.0 };
+      sign_set_default( s, &v );
+      snprintf( msg, sizeof(msg),
+		"VOLUNTEER %s str=%s", s->str, S_marshall_str );
+      py_print_str( msg );
+      return 1;
+    }
+  }
+  return 0;
+}
+
 
 //----------------------------------------------------------------------
 // NXP control events callbacks
@@ -228,6 +290,7 @@ void cb_on_gate( sign_rec_ptr sign, short val ){
 }
 
 
+// --------------------------------------------------------------------------------
 // clang-format off 
 EM_JS(void, cb_py_on_agenda_push, (), {
     // A empty stub for the actual cb in the host language
@@ -242,6 +305,7 @@ void cb_on_agenda_push( sign_rec_ptr sign, struct val_rec *val ){
 }
 
 
+// --------------------------------------------------------------------------------
 // clang-format off 
 EM_JS(void, cb_py_on_agenda_pop, (), {
     // A empty stub for the actual cb in the host language
@@ -255,12 +319,30 @@ void cb_on_agenda_pop( sign_rec_ptr sign, struct val_rec *val ){
   engine_default_on_agenda_pop( sign, val );
 }
 
+// --------------------------------------------------------------------------------
+// clang-format off 
+EM_JS(void, cb_py_on_endession, (), {
+    // A empty stub for the actual cb in the host language
+});
+// clang-format on
 
 void cb_on_endsession( sign_rec_ptr sign, struct val_rec *val ){
+  cb_py_on_endession();
 }
 
 
+// --------------------------------------------------------------------------------
+// clang-format off 
+EM_JS(void, cb_py_on_set, (int sign_id, int vbool, int vint, int vstr ), {
+    // A empty stub for the actual cb in the host language
+});
+// clang-format on
+
+
 void cb_on_set( sign_rec_ptr sign, struct val_rec *val ){
+  py_marshall_str( sign->str );
+  cb_py_on_set( (int32_t) sign, (int32_t) val->val_bool, (int32_t) val->val_int, (int32_t) val->valptr );
+  //
 }
 
 
@@ -324,6 +406,12 @@ int32_t nxpem_control( int32_t ctrl ){
     break;
   case NXP_CTRL_RESUME:
     engine_resume_knowcess( S_State );
+    break;
+  /* case NXP_CTRL_KNOWCESS: */
+  /*   engine_knowcess( S_State ); */
+  /*   break; */
+  case NXP_CTRL_AGENDA:
+    return (int32_t) S_State->agenda;
     break;
   case NXP_CTRL_EXIT:
     epilogue();

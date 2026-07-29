@@ -1,15 +1,20 @@
-# main.py
+
+
 import datetime
 from ctypes import *
 
 import asyncio
 
-# from prompt_toolkit import prompt
-# from prompt_toolkit import print_formatted_text, HTML
+# See also: https://python-prompt-toolkit.readthedocs.io/en/master/pages/full_screen_apps.html
+from prompt_toolkit import prompt
+from prompt_toolkit import print_formatted_text, HTML
 # from prompt_toolkit import PromptSession
 # from prompt_toolkit.patch_stdout import patch_stdout
 
 from universal_wasm_loader import wasm_import
+
+#
+NXP_INSESSION       = False
 
 #
 NXP_ATYPE_HYPO      = 1
@@ -25,6 +30,8 @@ NXP_CTRL_INIT       = 1
 NXP_CTRL_RESUME     = 2
 NXP_CTRL_RESTART    = 4
 NXP_CTRL_EXIT       = 8
+NXP_CTRL_KNOWCESS   = 16
+NXP_CTRL_AGENDA     = 32
 
 NXP_VTYPE_BOOL      = 1
 NXP_VTYPE_NUM       = 2
@@ -102,20 +109,47 @@ def cb_question( sign_id ) -> None:
     #
     vtyp  = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUETYPE )
     # resp = input( f'What is the ({vtyp}) value of {marshall_str}?\n> ' )
-    resp = input( f'What is the ({vtyp}) value of {marshall_str}?\n> ' )
+    print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
+    resp = prompt( f'> ' )
     if NXP_VTYPE_BOOL == vtyp:
-        pass
+        val = 1 if resp.casefold() == 'yes'.casefold() else 0
+        res = NXP_Volunteer( sign_id, vtyp, val )
     elif NXP_VTYPE_NUM == vtyp:
+        res = NXP_Volunteer( sign_id, vtyp, int(resp) )
         pass
     elif NXP_VTYPE_STR == vtyp:
         em_marshall_str( resp, NXPEM_MARSHALL_CHAR )
         res = NXP_Volunteer( sign_id, vtyp, 0 )
     else:
         print( "ERROR: Wrong value type" )
-    NXP_Control( NXP_CTRL_RESUME )
-    
-    
-async def main() -> None:
+
+
+
+def cb_on_endsession() -> None:
+    global NXP_INSESSION
+    print( "End session" )
+    NXP_INSESSION = False
+
+
+async def init():
+    callbacks = {
+        "cb_py_on_agenda_push": cb_on_agenda_push,
+        "cb_py_on_agenda_pop":  cb_on_agenda_pop,
+        "cb_py_on_endsession":  cb_on_endsession,
+        "cb_py_on_set":         cb_on_set,
+        "cb_py_question":       cb_question,
+        "py_marshall_char":     py_marshall_char,
+        "py_print":             py_print
+    }
+
+    # Load the module. Exports come back as a dict of callables.
+    exports = await wasm_import("nxpem.wasm", callbacks)
+    return exports
+
+
+def main() -> None:
+    global NXP_INSESSION
+
     global NXPEM_MARSHALL_CHAR 
     global NXP_GetAtomId 
     global NXP_GetAtomInfo 
@@ -125,18 +159,7 @@ async def main() -> None:
     global NXP_LoadKB_counts   
     global NXP_Control 
 
-    callbacks = {
-        "cb_py_on_agenda_push": cb_on_agenda_push,
-        "cb_py_on_agenda_pop":  cb_on_agenda_pop,
-        "cb_py_on_set":         cb_on_set,
-        "cb_py_question":       cb_question,
-        "py_marshall_char":     py_marshall_char,
-        "py_print":             py_print
-    }
-
-    # Load the module. Exports come back as a dict of callables.
-    exports = await wasm_import("nxpem.wasm", callbacks)
-
+    exports = asyncio.run( init() )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
 
     # Get a reference to the exported functions
@@ -180,10 +203,16 @@ async def main() -> None:
 
     res = NXP_Suggest( hypo_id, NXP_SPRIO_SUG )
 
-    res = NXP_Control( NXP_CTRL_RESUME )
+    # Make the session synchronous again!
+    NXP_INSESSION = True
+    while( NXP_INSESSION ):
+        NXP_Control( NXP_CTRL_RESUME )
+        if 0 == NXP_Control( NXP_CTRL_AGENDA ):
+            NXP_INSESSION = False
     
     # ignore = NXP_LoadKB( store, 'satfault.org', 1 )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_EXIT", NXP_Control( NXP_CTRL_EXIT ) )
 
-    
-asyncio.run(main())
+
+if __name__ == "__main__":
+    main()
