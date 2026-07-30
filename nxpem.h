@@ -28,5 +28,6 @@ typedef intptr_t AtomId;
 #define NXP_AINFO_VALUETYPE   3
 #define NXP_AINFO_VALUE   4
 #define NXP_AINFO_NEXT    5
+#define NXP_AINFO_CHOICE  6
 
 #endif
