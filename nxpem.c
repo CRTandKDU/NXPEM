@@ -18,6 +18,8 @@
 #include <emscripten.h>
 #include "nxpem.h"
 
+#define __NXPEM_VERSION__ "1.0.dev1"
+
 static engine_state_rec_ptr S_State;
 engine_state_rec_ptr repl_getState(){
   return S_State;
@@ -143,8 +145,21 @@ void  repl_log( const char *s ){
 EMSCRIPTEN_KEEPALIVE
 #endif // NXPEM
 int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
-  int ret = 0;
-  sign_rec_ptr s = (sign_rec_ptr) sign;
+  int ret		= 0;
+  int nchoices		= 0;
+  sign_rec_ptr s	= (sign_rec_ptr) sign;
+  // Special indices
+  if( info >= NXP_AINFO_BIGHASH ){
+    nchoices = info - NXP_AINFO_BIGHASH;
+    if( nchoices < nxp_hash_exists( s->str, (char *) "VALUE" ) ){
+      py_marshall_str( nxp_hash_getn( s->str, (char *) "VALUE", nchoices+1 ) );
+      return nchoices;
+    }
+    else{
+      return 0;
+    }
+  }
+  //
   switch( info ){
   case NXP_AINFO_NEXT:
     return (int32_t) s->next;
@@ -171,6 +186,29 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
     }
     return ret;
     break;
+
+  case NXP_AINFO_CHOICE:
+    nchoices = nxp_hash_exists( s->str, (char *) "VALUE" );
+    return nchoices;
+    break;
+
+  case NXP_AINFO_KNOWN:
+    return( s->val.status == _KNOWN );
+    break;
+
+  case NXP_AINFO_VALUE:
+    switch( s->val.type ){
+    case _VAL_T_BOOL:
+      return s->val.val_bool;
+      break;
+    case _VAL_T_INT:
+      return s->val.val_int;
+      break;
+    case _VAL_T_STR:
+      py_marshall_str( s->val.valptr );
+      return 0;
+      break;
+    }
     
   case NXP_AINFO_VALUETYPE:
     switch( s->val.type ){
@@ -517,7 +555,9 @@ int32_t nxpem_loadkb_counts(){
 }
 
 
+#ifdef NXPEM
 EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
 int32_t nxpem_loadkb_string( int32_t newp ){
   if( newp ){
     if( S_parser )
@@ -538,4 +578,12 @@ int32_t nxpem_loadkb_string( int32_t newp ){
   }
   
   return ret;
+}
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int32_t nxpem_version(){
+  py_marshall_str( __NXPEM_VERSION__ );
+  return 0;
 }

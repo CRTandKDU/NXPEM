@@ -81,6 +81,12 @@ char *nxp_hash_get( char *name, char *key ){
   return (char *) zhash_get( S_BigHash, zkey );
 }
 
+char *nxp_hash_getn( char *name, char *key, int n ){
+  char zkey[128];
+  sprintf( zkey, "%s%s%d", name, key, n );
+  return (char *) zhash_get( S_BigHash, zkey );
+}
+
 int nxp_hash_exists( char *name, char *key ){
   char zkey[128];
   unsigned long long int  n = 0;

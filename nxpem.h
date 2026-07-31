@@ -33,5 +33,7 @@ typedef intptr_t AtomId;
 #define NXP_AINFO_VALUE		4
 #define NXP_AINFO_NEXT		5
 #define NXP_AINFO_CHOICE	6
+#define NXP_AINFO_KNOWN	        7
+#define NXP_AINFO_BIGHASH      64 // Over 64 are reserved for BigHash indices
 
 #endif

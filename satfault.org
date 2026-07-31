@@ -1,4 +1,4 @@
-#+TITLE: SATFAULT at 40
+#+TITLE: SATFAULT at 40 (simplified)
 #+DATE: <2025-07-17 jeu.>
 #+AUTHOR: jmc@neurondata.org
 
@@ -399,7 +399,6 @@ THEN DECREASE_DUE_TO_THERMAL_CONDITIONS
 YES ACTION_12
 pressure_P2 nxp@ pressure_P5 nxp@ =
 THEN EXC_P_RISE_V10
-s( img/DIAGNOS.PNG) nxp_show
 #+END_RULE
 
 #+BEGIN_RULE diagnostic_3
@@ -427,14 +426,12 @@ YES ACTION_19
 YES TANKS_OUT_PRESSURE_LOW
 pressure_out_P3 nxp@ pressure_out_P4 nxp@ =
 THEN POSSIBLE_LEAK
-s( img/POSSIBLE.PNG) nxp_show
 #+END_RULE
 
 #+BEGIN_RULE diagnostic_7
 YES ACTION_14
 YES TANKS_EQUAL
 THEN POSSIBLE_LEAK
-s( img/CONTACT_.PNG) nxp_show
 #+END_RULE
 
 #+BEGIN_RULE diagnostic_8
@@ -442,7 +439,6 @@ YES ACTION_4
 YES TANKS_EQUAL
 NO ALARM_TANK_WAS_HIGH
 THEN POSSIBLE_LEAK
-s( img/POSSIBLE.PNG) nxp_show
 #+END_RULE
 
 #+BEGIN_RULE diagnostic_9

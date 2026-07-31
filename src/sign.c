@@ -214,8 +214,8 @@ void sign_set_default(sign_rec_ptr sign, struct val_rec *val)
         break;
 
     case _VAL_T_STR:
-        sign->val.valptr = val->valptr;
-        break;
+      sign->val.valptr = strdup( val->valptr );
+      break;
 
     default:
         break;

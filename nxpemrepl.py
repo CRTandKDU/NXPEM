@@ -11,10 +11,16 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.lexers import PygmentsLexer
 # from pygments.lexers.sql import SqlLexer
+from prompt_toolkit.filters import is_done
+from prompt_toolkit.shortcuts import choice
+from prompt_toolkit.shortcuts import yes_no_dialog
+from prompt_toolkit.styles import Style
 
 from universal_wasm_loader import wasm_import
 
 import pyparsing as pp
+
+__version__ = '1.0dev1'
 
 # Usual hand-waving about global variables
 NXP_INSESSION       = False
@@ -40,9 +46,10 @@ NXP_CTRL_EXIT       = 8
 NXP_CTRL_KNOWCESS   = 16
 NXP_CTRL_AGENDA     = 32
 
-NXP_VTYPE_BOOL      = 1
-NXP_VTYPE_NUM       = 2
-NXP_VTYPE_STR       = 4
+class VTypeCode:
+    NXP_VTYPE_BOOL      = 1
+    NXP_VTYPE_NUM       = 2
+    NXP_VTYPE_STR       = 4
 
 NXP_AINFO_NAME      = 1
 NXP_AINFO_TYPE      = 2
@@ -50,6 +57,8 @@ NXP_AINFO_VALUETYPE = 3
 NXP_AINFO_VALUE     = 4
 NXP_AINFO_NEXT      = 5
 NXP_AINFO_CHOICE    = 6
+NXP_AINFO_KNOWN     = 7
+NXP_AINFO_BIGHASH   = 64
 
 NXPEM_MARSHALL_CHAR = None
 NXP_GetAtomId       = None
@@ -59,6 +68,7 @@ NXP_Volunteer       = None
 NXP_LoadKB          = None         
 NXP_LoadKB_counts   = None  
 NXP_Control         = None
+NXP_Version         = None
 
 # --------------------------------------------------------------------------------
 # REPL config
@@ -79,6 +89,17 @@ def repl_cb_suggest( arr ) -> bool:
     return False
 
 
+def repl_cb_volunteer( arr ) -> bool:
+    if( len(arr) ==2 ):
+        em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
+        sign = NXP_GetAtomId( NXP_ATYPE_SIGN )
+        if sign:
+            cb_question( sign )
+    else:
+        print_formatted_text( HTML( "<ansiorange>ERROR: unknown argument</ansiorange>" ) )
+    return False
+
+
 def repl_cb_knowcess( arr ) -> bool:
     global NXP_INSESSION
     NXP_INSESSION = True
@@ -87,6 +108,40 @@ def repl_cb_knowcess( arr ) -> bool:
         if 0 == NXP_Control( NXP_CTRL_AGENDA ):
             NXP_INSESSION = False
     #
+    return False
+
+
+def repl_cb_ency( arr ) -> bool:
+    if( arr ):
+        if arr[1].casefold() == "hypo".casefold() :
+            top = NXP_GetAtomId( NXP_ATYPE_TOPHYPO )
+            while top:
+                res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+                msg =  '{0:<40}\t{1:<32}'.format( marshall_str, nxpem_getvalue(top) )
+                print_formatted_text( HTML(msg) )
+                top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+        elif arr[1].casefold() == "sign".casefold() :
+            top = NXP_GetAtomId( NXP_ATYPE_TOPSIGN )
+            while top:
+                res = NXP_GetAtomInfo( top, NXP_AINFO_TYPE )
+                if( NXP_ATYPE_SIGN == res ):
+                    res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+                    nam = str( marshall_str )
+                    msg =  '{0:<40}\t{1:<32}'.format( nam, nxpem_getvalue(top) )
+                    print_formatted_text( HTML(msg) )
+                top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+        elif arr[1].casefold() == "rule".casefold() :
+            top = NXP_GetAtomId( NXP_ATYPE_TOPRULE )
+            while top:
+                res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+                msg =  '{0:<40}\t{1:<32}'.format( marshall_str, nxpem_getvalue(top) )
+                print_formatted_text( HTML(msg) )
+                top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+            pass
+        else:
+            pass
+    else:
+        print_formatted_text( HTML( "<ansiorange>ERROR: unknown argument</ansiorange>" ) )
     return False
 
 
@@ -104,10 +159,21 @@ def repl_cb_loadkb( arr ) -> bool:
         for line_no in range( len(kb) ):
             em_marshall_str( kb[line_no], NXPEM_MARSHALL_CHAR )
             if 0 == line_no:
-                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no], NXP_LoadKB( 1 ) )
+                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no][:-1], NXP_LoadKB( 1 ) )
             else:
-                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no], NXP_LoadKB( 0 ) )
-                
+                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no][:-1], NXP_LoadKB( 0 ) )
+    else:
+        with open( arr[1] ) as f:
+            beg = True
+            for line in f:
+                em_marshall_str( line, NXPEM_MARSHALL_CHAR )
+                if beg:
+                    print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), line[:-1], NXP_LoadKB( 1 ) )
+                    beg = False
+                else:
+                    NXP_LoadKB( 0 )
+            print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), f'Loaded {arr[1]}' )
+    #
     repl_post_loadkb()
     #
     return False
@@ -118,14 +184,14 @@ nxp_repl_table = {
     "quit":      [ None, repl_cb_quit, "quit" ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
     "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
-    "volunteer": [ None, repl_cb_pass, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) + pp.Word(pp.alphanums) ) ],
+    "volunteer": [ None, repl_cb_volunteer, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) ) ],
     "knowcess":  [ None, repl_cb_knowcess, "knowcess" ],
     "reset":     [ None, repl_cb_pass, "reset" ],
     "ency": [{
         "hypo": None,
         "sign": None,
         "rule": None
-        }, repl_cb_pass, "" ],
+        }, repl_cb_ency, ("ency" + pp.Word( pp.alphas )) ],
     "getatomid": [{
         "hypo": None,
         "sign": None,
@@ -219,8 +285,29 @@ def em_marshall_str( s: str, func ) -> None:
 
 
 # --------------------------------------------------------------------------------
-# NEXPERT CALLABLE INTERFACE like callbacks    
+# NEXPERT CALLABLE INTERFACE like callbacks and utils
 # --------------------------------------------------------------------------------
+def nxpem_getvalue( sign_id ) -> str:
+    val = NXP_GetAtomInfo( sign_id, NXP_AINFO_KNOWN )
+    if val:
+        # Format value as string
+        vtyp  = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUETYPE )
+        match vtyp:
+            case VTypeCode.NXP_VTYPE_BOOL:
+                val = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
+                return '<ansigreen>Yes</ansigreen>' if val else '<ansired>No</ansired>'
+            case VTypeCode.NXP_VTYPE_NUM:
+                val = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
+                return f'<b>{val}</b>'
+            case VTypeCode.NXP_VTYPE_STR:
+                ignore = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
+                return f'<b>{marshall_str}</b>'
+            case _:
+                return 'error'
+    else:
+        return 'UNKNOWN'
+        
+
 def cb_on_agenda_push() -> None:
     print( "AGENDA Push:", marshall_str )
 
@@ -234,30 +321,61 @@ def cb_on_set( sign_id, vbool, vint, vstr ) -> None:
     
 
 def cb_question( sign_id ) -> None:
-    global NXPEM_MARSHALL_CHAR 
-    global NXP_GetAtomId 
-    global NXP_GetAtomInfo 
-    global NXP_Suggest         
-    global NXP_Volunteer         
-    global NXP_LoadKB          
-    global NXP_LoadKB_counts   
-    global NXP_Control 
-    #
+    style = Style.from_dict(
+        {
+            "frame.border": "#ffffff",
+            "selected-option": "bold",
+        }
+    )
     vtyp  = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUETYPE )
-    # resp = input( f'What is the ({vtyp}) value of {marshall_str}?\n> ' )
-    print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
-    resp = prompt( f'> ' )
-    if NXP_VTYPE_BOOL == vtyp:
-        val = 1 if resp.casefold() == 'yes'.casefold() else 0
-        res = NXP_Volunteer( sign_id, vtyp, val )
-    elif NXP_VTYPE_NUM == vtyp:
-        res = NXP_Volunteer( sign_id, vtyp, int(resp) )
-        pass
-    elif NXP_VTYPE_STR == vtyp:
-        em_marshall_str( resp, NXPEM_MARSHALL_CHAR )
-        res = NXP_Volunteer( sign_id, vtyp, 0 )
-    else:
-        print( "ERROR: Wrong value type" )
+    match vtyp:
+        case VTypeCode.NXP_VTYPE_BOOL:
+            # print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
+            # resp = prompt( f'> ' )
+            resp = choice(
+                message= HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ),
+                options=[
+                    ("yes", "Yes"),
+                    ("no", "No"),
+                ],
+                style=style,
+                bottom_toolbar=HTML(
+                    " Press <b>[Up]</b>/<b>[Down]</b> to select, <b>[Enter]</b> to accept."
+                ),                
+                show_frame=~is_done,
+            )
+            val = 1 if resp.casefold() == "yes".casefold() else 0
+            res = NXP_Volunteer( sign_id, vtyp, val )
+        case VTypeCode.NXP_VTYPE_NUM:
+            print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
+            resp = prompt( f'> ' )
+            res = NXP_Volunteer( sign_id, vtyp, int(resp) )
+        case VTypeCode.NXP_VTYPE_STR:
+            message= HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' )
+            nchoices = NXP_GetAtomInfo( sign_id, NXP_AINFO_CHOICE )
+            if nchoices > 0 :
+                options = []
+                for i in range( nchoices ):
+                    ignore = NXP_GetAtomInfo( sign_id, NXP_AINFO_BIGHASH + i )
+                    options += [( marshall_str, marshall_str )]
+                options += [( "other", "other" )]
+                resp = choice(
+                    message=message,
+                    options=options,
+                    style=style,
+                    bottom_toolbar=HTML(
+                        " Press <b>[Up]</b>/<b>[Down]</b> to select, <b>[Enter]</b> to accept."
+                    ),                
+                    show_frame=~is_done,
+                )
+            else:
+                print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
+                resp = prompt( f'> ' )
+            #    
+            em_marshall_str( resp, NXPEM_MARSHALL_CHAR )
+            res = NXP_Volunteer( sign_id, vtyp, 0 )
+        case _:
+            print_formatted_text( HTML( "<ansired>ERROR: Wrong value type</ansired>" ) )
 
 
 
@@ -297,6 +415,7 @@ def nxp_init() -> None:
     global NXP_LoadKB          
     global NXP_LoadKB_counts   
     global NXP_Control 
+    global NXP_Version 
 
     exports = asyncio.run( nxp_init_wasm() )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
@@ -310,6 +429,7 @@ def nxp_init() -> None:
     NXP_LoadKB          = exports["nxpem_loadkb_string"]
     NXP_LoadKB_counts   = exports["nxpem_loadkb_counts"]
     NXP_Control         = exports["nxpem_control"]
+    NXP_Version         = exports["nxpem_version"]
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     #
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )
@@ -346,7 +466,8 @@ def main():
         complete_while_typing=True
     )
     nxp_init()
-    print_formatted_text(HTML( '<ansigreen>NXP 40y Architecture, WASM.</ansigreen>' ) )
+    ignore = NXP_Version()
+    print_formatted_text(HTML( f'<ansigreen>NXP 40y Architecture, WASM v{marshall_str}.</ansigreen>' ) )
     print( 'Type NXP commands, or \"help\" for more information, \"quit\" or \"Ctrl-d\" to quit' )
 
     while True:

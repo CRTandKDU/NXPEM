@@ -8,6 +8,7 @@ void nxp_hash_close();
 void nxp_hash_print();
 void nxp_hash_set( char *, char *, const char * );
 char *nxp_hash_get( char *, char * );
+char *nxp_hash_getn( char *, char *, int );
 int  nxp_hash_exists( char *, char * );
 void nxp_hash_iterate( char *, char *, nxp_hash_iter_t, void * );
 void nxp_hash_iterate_table( void * );
