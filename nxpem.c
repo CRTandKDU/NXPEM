@@ -143,8 +143,35 @@ void  repl_log( const char *s ){
 EMSCRIPTEN_KEEPALIVE
 #endif // NXPEM
 int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
+  int ret = 0;
   sign_rec_ptr s = (sign_rec_ptr) sign;
   switch( info ){
+  case NXP_AINFO_NEXT:
+    return (int32_t) s->next;
+    break;
+
+  case NXP_AINFO_NAME:
+    py_marshall_str( s->str );
+    break;
+
+  case NXP_AINFO_TYPE:
+    switch( s->len_type & TYPE_MASK ){
+    case SIGN_MASK:
+      ret = NXP_ATYPE_SIGN;
+      break;
+    case HYPO_MASK:
+      ret = NXP_ATYPE_HYPO;
+      break;
+    case COMPOUND_MASK:
+      ret = NXP_ATYPE_COMPOUND;
+      break;
+    case RULE_MASK:
+      ret = NXP_ATYPE_RULE;
+      break;
+    }
+    return ret;
+    break;
+    
   case NXP_AINFO_VALUETYPE:
     switch( s->val.type ){
     case _VAL_T_BOOL:
@@ -167,6 +194,15 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
 AtomId nxpem__getatomid( const char *name, int nxptype ){
   sign_rec_ptr res = NULL;
   switch( nxptype ){
+  case NXP_ATYPE_TOPHYPO:
+    res = loadkb_get_allhypos();
+    break;
+  case NXP_ATYPE_TOPSIGN:
+    res = loadkb_get_allsigns();
+    break;
+  case NXP_ATYPE_TOPRULE:
+    res = (sign_rec_ptr) loadkb_get_allrules();
+    break;
   case NXP_ATYPE_HYPO:
     res = sign_find( name, loadkb_get_allhypos() );
     break;

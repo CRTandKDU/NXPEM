@@ -16,13 +16,17 @@ from universal_wasm_loader import wasm_import
 
 import pyparsing as pp
 
-#
+# Usual hand-waving about global variables
 NXP_INSESSION       = False
 
 #
 NXP_ATYPE_HYPO      = 1
 NXP_ATYPE_SIGN      = 2
 NXP_ATYPE_RULE      = 4
+NXP_ATYPE_TOPHYPO   = 8
+NXP_ATYPE_TOPSIGN   = 16
+NXP_ATYPE_TOPRULE   = 32
+NXP_ATYPE_COMPOUND  = 64
 
 NXP_SPRIO_UNSUG     = 1
 NXP_SPRIO_SUG       = 2
@@ -47,7 +51,6 @@ NXP_AINFO_VALUE     = 4
 NXP_AINFO_NEXT      = 5
 NXP_AINFO_CHOICE    = 6
 
-
 NXPEM_MARSHALL_CHAR = None
 NXP_GetAtomId       = None
 NXP_GetAtomInfo     = None
@@ -68,6 +71,25 @@ def repl_cb_quit( arr ) -> bool:
     return True
 
 
+def repl_cb_suggest( arr ) -> bool:
+    em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
+    hypo = NXP_GetAtomId( NXP_ATYPE_HYPO )
+    if hypo:
+        res = NXP_Suggest( hypo, NXP_SPRIO_SUG )
+    return False
+
+
+def repl_cb_knowcess( arr ) -> bool:
+    global NXP_INSESSION
+    NXP_INSESSION = True
+    while( NXP_INSESSION ):
+        NXP_Control( NXP_CTRL_RESUME )
+        if 0 == NXP_Control( NXP_CTRL_AGENDA ):
+            NXP_INSESSION = False
+    #
+    return False
+
+
 def repl_cb_loadkb( arr ) -> bool:
     # A toy kb when no file arg
     if( 1 == len(arr) ):
@@ -82,23 +104,23 @@ def repl_cb_loadkb( arr ) -> bool:
         for line_no in range( len(kb) ):
             em_marshall_str( kb[line_no], NXPEM_MARSHALL_CHAR )
             if 0 == line_no:
-                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB( 1 ) )
+                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no], NXP_LoadKB( 1 ) )
             else:
-                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_LoadKB", NXP_LoadKB( 0 ) )
+                print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), kb[line_no], NXP_LoadKB( 0 ) )
                 
-    NXP_LoadKB_counts()
+    repl_post_loadkb()
     #
     return False
     
 
 nxp_repl_table = {
-    "help":      [ None, repl_cb_pass, "" ],
+    "help":      [ None, repl_cb_pass, "help" ],
     "quit":      [ None, repl_cb_quit, "quit" ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
-    "suggest":   [ None, repl_cb_pass, "" ],
-    "volunteer": [ None, repl_cb_pass, "" ],
-    "knowcess":  [ None, repl_cb_pass, "" ],
-    "reset":     [ None, repl_cb_pass, "" ],
+    "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
+    "volunteer": [ None, repl_cb_pass, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) + pp.Word(pp.alphanums) ) ],
+    "knowcess":  [ None, repl_cb_knowcess, "knowcess" ],
+    "reset":     [ None, repl_cb_pass, "reset" ],
     "ency": [{
         "hypo": None,
         "sign": None,
@@ -125,6 +147,40 @@ nxp_completer = NestedCompleter.from_nested_dict(
 
 nxp_templates = pp.Or(
     [ value[2] for key, value in nxp_repl_table.items() if value ] )
+
+
+nxprepl_session = None
+
+# Post-cb hooks
+def repl_post_loadkb() -> None:
+    global nxp_repl_table
+    global nxp_completer
+    global nxprepl_session
+    # NXP_LoadKB_counts()
+    # Update the completer in current session
+    hypo_dict = {}
+    top = NXP_GetAtomId( NXP_ATYPE_TOPHYPO )
+    while top:
+        res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+        # print( marshall_str )
+        hypo_dict[ marshall_str ] = None
+        top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+    nxp_repl_table[ "suggest" ][0] = hypo_dict
+    #
+    sign_dict = {}
+    top = NXP_GetAtomId( NXP_ATYPE_TOPSIGN )
+    while top:
+        res = NXP_GetAtomInfo( top, NXP_AINFO_TYPE )
+        # print( marshall_str )
+        if( NXP_ATYPE_SIGN == res ):
+            res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+            sign_dict[ marshall_str ] = None
+        top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+    nxp_repl_table[ "volunteer" ][0] = sign_dict
+
+    nxp_completer = NestedCompleter.from_nested_dict(
+        { key: value[0] for key, value in nxp_repl_table.items() if value } )
+    nxprepl_session.completer = nxp_completer
 
 
 # --------------------------------------------------------------------------------
@@ -263,9 +319,12 @@ def nxp_init() -> None:
 # Parsing REPL simple commands and executingg associated actions
 # --------------------------------------------------------------------------------
 def nxp_action( arr ) -> bool:
-    cb = nxp_repl_table[ arr[0] ][1]
-    if( None != cb ):
-        return cb( arr )
+    if arr:
+        cb = nxp_repl_table[ arr[0] ][1]
+        if( None != cb ):
+            return cb( arr )
+    else:
+        print_formatted_text( HTML( '<orange>Incomplete or incorrect command</orange>' ) )
     return False
 
     
@@ -281,7 +340,8 @@ def nxp_command( text ) -> bool:
 
     
 def main():
-    session = PromptSession(
+    global nxprepl_session
+    nxprepl_session = PromptSession(
         completer = nxp_completer,
         complete_while_typing=True
     )
@@ -291,7 +351,7 @@ def main():
 
     while True:
         try:
-            text = session.prompt('> ')
+            text = nxprepl_session.prompt('> ')
         except KeyboardInterrupt:
             continue
         except EOFError:
