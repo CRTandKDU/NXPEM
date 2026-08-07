@@ -148,7 +148,42 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
   int ret		= 0;
   int nchoices		= 0;
   sign_rec_ptr s	= (sign_rec_ptr) sign;
+  cond_rec_ptr cond;
+  char buf[128];
   // Special indices
+  if( info >= NXP_AINFO_RHSINDX ){
+    nchoices = info - NXP_AINFO_RHSINDX;
+    if( nchoices >= 0 && nchoices < ((rule_rec_ptr)s)->nrhs ){
+      py_marshall_str( (char *) ((rule_rec_ptr)s)->rhs[nchoices] );
+      return nchoices;
+    }
+    else{
+      return 0;
+    }
+  }
+  //
+  if( info >= NXP_AINFO_LHSINDX ){
+    nchoices = info - NXP_AINFO_LHSINDX;
+    if( nchoices >= 0 && nchoices < ((rule_rec_ptr)s)->ngetters ){
+      cond = (cond_rec_ptr) ((rule_rec_ptr)s)->getters[ nchoices ];
+      switch( cond->sign->len_type & TYPE_MASK ){
+      case SIGN_MASK:
+      case HYPO_MASK:
+	snprintf( buf, sizeof(buf),
+		  "%s %s", cond->in ? "YES" : "NO", cond->sign->str );
+	py_marshall_str( buf );
+	break;
+      case COMPOUND_MASK:
+	py_marshall_str( ((compound_rec_ptr) cond->sign)->dsl_expression );
+	break;
+      }
+      return nchoices;
+    }
+    else{
+      return 0;
+    }
+  }
+  //
   if( info >= NXP_AINFO_BIGHASH ){
     nchoices = info - NXP_AINFO_BIGHASH;
     if( nchoices < nxp_hash_exists( s->str, (char *) "VALUE" ) ){
@@ -161,6 +196,18 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
   }
   //
   switch( info ){
+  case NXP_AINFO_HYPO:
+    return (int32_t) s->setters;
+    break;
+
+  case NXP_AINFO_LHS:
+    return (int32_t) s->ngetters;
+    break;
+
+  case NXP_AINFO_RHS:
+    return (int32_t) ((rule_rec_ptr)s)->nrhs;
+    break;
+
   case NXP_AINFO_NEXT:
     return (int32_t) s->next;
     break;

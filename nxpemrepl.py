@@ -20,6 +20,8 @@ from universal_wasm_loader import wasm_import
 
 import pyparsing as pp
 
+from html import escape
+
 __version__ = '1.0dev1'
 
 # Usual hand-waving about global variables
@@ -58,7 +60,12 @@ NXP_AINFO_VALUE     = 4
 NXP_AINFO_NEXT      = 5
 NXP_AINFO_CHOICE    = 6
 NXP_AINFO_KNOWN     = 7
+NXP_AINFO_HYPO      = 8
+NXP_AINFO_LHS       = 9
+NXP_AINFO_RHS       = 10
 NXP_AINFO_BIGHASH   = 64
+NXP_AINFO_LHSINDX   = 128
+NXP_AINFO_RHSINDX   = 192
 
 NXPEM_MARSHALL_CHAR = None
 NXP_GetAtomId       = None
@@ -80,6 +87,27 @@ def repl_cb_pass( arr ) -> bool:
 def repl_cb_quit( arr ) -> bool:
     return True
 
+
+def repl_cb_rule( arr ) -> bool:
+    print( f'#+BEGIN_RULE: {arr[1]}' )
+    em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
+    rule = NXP_GetAtomId( NXP_ATYPE_RULE )
+    if rule:
+        nlhs = NXP_GetAtomInfo( rule, NXP_AINFO_LHS )
+        if nlhs > 0:
+            for i in range( nlhs ):
+                ignore = NXP_GetAtomInfo( rule, NXP_AINFO_LHSINDX+i )
+                print( marshall_str.rstrip() )
+        hypo = NXP_GetAtomInfo( rule, NXP_AINFO_HYPO )
+        ignore = NXP_GetAtomInfo( hypo, NXP_AINFO_NAME )
+        print( f'THEN {marshall_str}' )
+        nrhs = NXP_GetAtomInfo( rule, NXP_AINFO_RHS )
+        if nrhs > 0:
+            for i in range( nrhs ):
+                ignore = NXP_GetAtomInfo( rule, NXP_AINFO_RHSINDX+i )
+                print( marshall_str.rstrip() )
+    print( '#+END_RULE' )
+    return False
 
 def repl_cb_suggest( arr ) -> bool:
     em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
@@ -191,7 +219,8 @@ nxp_repl_table = {
         "hypo": None,
         "sign": None,
         "rule": None
-        }, repl_cb_ency, ("ency" + pp.Word( pp.alphas )) ],
+        }, repl_cb_ency, ("ency" + pp.Word( pp.alphanums )) ],
+    "rule": [ None, repl_cb_rule, ("rule" + pp.Word( pp.alphanums + "_-<>!$%&+=@/")) ],
     "getatomid": [{
         "hypo": None,
         "sign": None,
@@ -219,6 +248,7 @@ nxprepl_session = None
 
 # Post-cb hooks
 def repl_post_loadkb() -> None:
+    """Once KB is loaded, fills completions w. hypos, signs and rules."""
     global nxp_repl_table
     global nxp_completer
     global nxprepl_session
@@ -243,7 +273,16 @@ def repl_post_loadkb() -> None:
             sign_dict[ marshall_str ] = None
         top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
     nxp_repl_table[ "volunteer" ][0] = sign_dict
-
+    #
+    rule_dict = {}
+    top = NXP_GetAtomId( NXP_ATYPE_TOPRULE )
+    while top:
+        res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+        # print( marshall_str )
+        rule_dict[ marshall_str ] = None
+        top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
+    nxp_repl_table[ "rule" ][0] = rule_dict
+    #
     nxp_completer = NestedCompleter.from_nested_dict(
         { key: value[0] for key, value in nxp_repl_table.items() if value } )
     nxprepl_session.completer = nxp_completer
@@ -261,7 +300,9 @@ def py_print( s ) -> None:
         marshall_str = ''
     else:
         if 4 == s:
-            print( marshall_str )
+            # print( marshall_str )
+            msg = HTML( "<ansiblack>{}</ansiblack>".format( escape( marshall_str ) ) )
+            print_formatted_text( msg )
         else:
             marshall_str += chr(s)
 

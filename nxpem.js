@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmpzeoo59cb.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp0ru6kgha.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -190,25 +190,25 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
     }
 
     }
-    loadPackage({"files": [{"filename": "/satfault.org", "start": 0, "end": 38003}], "remote_package_size": 38003});
+    loadPackage({"files": [{"filename": "/satfault.org", "start": 0, "end": 37990}], "remote_package_size": 37990});
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmpzeoo59cb.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmppwc5x5ga.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmp0ru6kgha.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpyy4n1rk2.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmppwc5x5ga.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmppku4yr8n.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpyy4n1rk2.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp_3eecmjx.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmppku4yr8n.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmp_3eecmjx.js
 
 
 // Sometimes an existing Module object exists with properties
