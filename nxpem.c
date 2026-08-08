@@ -151,6 +151,16 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
   cond_rec_ptr cond;
   char buf[128];
   // Special indices
+  if( info >= NXP_AINFO_RULEINDX ){
+    nchoices = info - NXP_AINFO_RULEINDX;
+    if( nchoices >= 0 && nchoices < (s)->ngetters ){
+      py_marshall_str( (char *) ((bwrd_rec_ptr) s->getters[nchoices])->rule->str );
+      return nchoices;
+    }
+    else{
+      return 0;
+    }
+  }
   if( info >= NXP_AINFO_RHSINDX ){
     nchoices = info - NXP_AINFO_RHSINDX;
     if( nchoices >= 0 && nchoices < ((rule_rec_ptr)s)->nrhs ){
@@ -177,10 +187,10 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
 	py_marshall_str( ((compound_rec_ptr) cond->sign)->dsl_expression );
 	break;
       }
-      return nchoices;
+      return (int32_t) cond->val;
     }
     else{
-      return 0;
+      return 255;
     }
   }
   //
@@ -196,10 +206,12 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
   }
   //
   switch( info ){
+
   case NXP_AINFO_HYPO:
     return (int32_t) s->setters;
     break;
 
+  case NXP_AINFO_RULE:
   case NXP_AINFO_LHS:
     return (int32_t) s->ngetters;
     break;
@@ -244,18 +256,24 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
     break;
 
   case NXP_AINFO_VALUE:
-    switch( s->val.type ){
-    case _VAL_T_BOOL:
-      return s->val.val_bool;
-      break;
-    case _VAL_T_INT:
-      return s->val.val_int;
-      break;
-    case _VAL_T_STR:
-      py_marshall_str( s->val.valptr );
-      return 0;
-      break;
+    if( _KNOWN == s->val.status ){
+      switch( s->val.type ){
+      case _VAL_T_BOOL:
+	return s->val.val_bool;
+	break;
+      case _VAL_T_INT:
+	return s->val.val_int;
+	break;
+      case _VAL_T_STR:
+	py_marshall_str( s->val.valptr );
+	return 0;
+	break;
+      }
     }
+    else{
+      return 255;
+    }
+    break;
     
   case NXP_AINFO_VALUETYPE:
     switch( s->val.type ){
@@ -634,3 +652,12 @@ int32_t nxpem_version(){
   py_marshall_str( __NXPEM_VERSION__ );
   return 0;
 }
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int32_t nxpem_dsl_eval( ){
+  int32_t ret = engine_dsl_pop_eval( S_marshall_str );
+  return ret;
+}
+

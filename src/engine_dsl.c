@@ -1248,6 +1248,14 @@ int  engine_dsl_eval( const char * expr ){
   return r;
 }
 
+int  engine_dsl_pop_eval( const char * expr ){
+  cell_t val;
+  int r = embed_eval( S_v->h, expr );
+  r = embed_pop( S_v->h, &val );
+  // val is an unsigned 16b int
+  return (int) val;
+}
+
 int  engine_dsl_rhs_eval( const char * expr ){
   cell_t val;
   int r = embed_eval( S_v->h, expr );

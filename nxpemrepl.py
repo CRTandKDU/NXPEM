@@ -63,9 +63,15 @@ NXP_AINFO_KNOWN     = 7
 NXP_AINFO_HYPO      = 8
 NXP_AINFO_LHS       = 9
 NXP_AINFO_RHS       = 10
+NXP_AINFO_RULE      = 11
 NXP_AINFO_BIGHASH   = 64
 NXP_AINFO_LHSINDX   = 128
 NXP_AINFO_RHSINDX   = 192
+NXP_AINFO_RULEINDX  = 256
+
+NXP_VTRUE    = 1
+NXP_VFALSE   = 0
+NXP_VUNKNOWN = 255
 
 NXPEM_MARSHALL_CHAR = None
 NXP_GetAtomId       = None
@@ -76,6 +82,7 @@ NXP_LoadKB          = None
 NXP_LoadKB_counts   = None  
 NXP_Control         = None
 NXP_Version         = None
+NXP_DSL_PopEval     = None
 
 # --------------------------------------------------------------------------------
 # REPL config
@@ -88,6 +95,19 @@ def repl_cb_quit( arr ) -> bool:
     return True
 
 
+def repl_cb_backward( arr ) -> bool:
+    em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
+    hypo = NXP_GetAtomId( NXP_ATYPE_HYPO )
+    if hypo:
+        nrules = NXP_GetAtomInfo( hypo, NXP_AINFO_RULE )
+        print( f'{nrules} rules:' )
+        for i in range(nrules):
+            ignore = NXP_GetAtomInfo( hypo, NXP_AINFO_RULEINDX+i )
+            ignore = repl_cb_rule( [ "backward", marshall_str ] )
+            print( " " )
+    return False
+
+
 def repl_cb_rule( arr ) -> bool:
     print( f'#+BEGIN_RULE: {arr[1]}' )
     em_marshall_str( arr[1], NXPEM_MARSHALL_CHAR )
@@ -96,15 +116,30 @@ def repl_cb_rule( arr ) -> bool:
         nlhs = NXP_GetAtomInfo( rule, NXP_AINFO_LHS )
         if nlhs > 0:
             for i in range( nlhs ):
-                ignore = NXP_GetAtomInfo( rule, NXP_AINFO_LHSINDX+i )
-                print( marshall_str.rstrip() )
-        hypo = NXP_GetAtomInfo( rule, NXP_AINFO_HYPO )
+                val = NXP_GetAtomInfo( rule, NXP_AINFO_LHSINDX+i )
+                if NXP_VTRUE == val:
+                    msg = f'<ansigreen>{ escape( marshall_str.rstrip() ) }</ansigreen>'
+                elif NXP_VFALSE == val:
+                    msg = f'<ansired>{ escape( marshall_str.rstrip() ) }</ansired>'
+                else:
+                    msg = f'{ escape( marshall_str.rstrip() ) }'
+                print_formatted_text( HTML(msg) )
+                # print( marshall_str.rstrip(),  f'(val={val})' )
+        hypo   = NXP_GetAtomInfo( rule, NXP_AINFO_HYPO )
+        val    = NXP_GetAtomInfo( hypo, NXP_AINFO_VALUE )
         ignore = NXP_GetAtomInfo( hypo, NXP_AINFO_NAME )
-        print( f'THEN {marshall_str}' )
+        if NXP_VTRUE == val:
+            msg = f'THEN <ansigreen>{ escape( marshall_str ) }</ansigreen>'
+        elif NXP_VFALSE == val:
+            msg = f'THEN <ansired>{ escape( marshall_str ) }</ansired>'
+        else:
+            msg = f'THEN { escape( marshall_str ) }'
+        print_formatted_text( HTML(msg) )
+        # print( f'THEN {marshall_str}' )
         nrhs = NXP_GetAtomInfo( rule, NXP_AINFO_RHS )
         if nrhs > 0:
             for i in range( nrhs ):
-                ignore = NXP_GetAtomInfo( rule, NXP_AINFO_RHSINDX+i )
+                val = NXP_GetAtomInfo( rule, NXP_AINFO_RHSINDX+i )
                 print( marshall_str.rstrip() )
     print( '#+END_RULE' )
     return False
@@ -205,22 +240,32 @@ def repl_cb_loadkb( arr ) -> bool:
     repl_post_loadkb()
     #
     return False
-    
+
+
+def repl_cb_dsl_popeval( arr ) -> bool:
+    fth = " ".join( arr[1:] ) + "\n"
+    # print( fth )
+    em_marshall_str( fth, NXPEM_MARSHALL_CHAR )
+    print( NXP_DSL_PopEval() )
+    return False
+
 
 nxp_repl_table = {
     "help":      [ None, repl_cb_pass, "help" ],
     "quit":      [ None, repl_cb_quit, "quit" ],
+    "@":         [ None, repl_cb_dsl_popeval, ("@" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
     "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
     "volunteer": [ None, repl_cb_volunteer, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) ) ],
     "knowcess":  [ None, repl_cb_knowcess, "knowcess" ],
     "reset":     [ None, repl_cb_pass, "reset" ],
-    "ency": [{
+    "ency":      [{
         "hypo": None,
         "sign": None,
         "rule": None
         }, repl_cb_ency, ("ency" + pp.Word( pp.alphanums )) ],
-    "rule": [ None, repl_cb_rule, ("rule" + pp.Word( pp.alphanums + "_-<>!$%&+=@/")) ],
+    "rule":      [ None, repl_cb_rule, ("rule" + pp.Word( pp.alphanums + "_-<>!$%&+=@/")) ],
+    "backward":  [ None, repl_cb_backward, ("backward" + pp.Word( pp.alphanums + "_-<>!$%&+=@/")) ],
     "getatomid": [{
         "hypo": None,
         "sign": None,
@@ -261,7 +306,8 @@ def repl_post_loadkb() -> None:
         # print( marshall_str )
         hypo_dict[ marshall_str ] = None
         top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
-    nxp_repl_table[ "suggest" ][0] = hypo_dict
+    nxp_repl_table[ "suggest" ][0]  = hypo_dict
+    nxp_repl_table[ "backward" ][0] = hypo_dict
     #
     sign_dict = {}
     top = NXP_GetAtomId( NXP_ATYPE_TOPSIGN )
@@ -456,7 +502,8 @@ def nxp_init() -> None:
     global NXP_LoadKB          
     global NXP_LoadKB_counts   
     global NXP_Control 
-    global NXP_Version 
+    global NXP_Version
+    global NXP_DSL_PopEval
 
     exports = asyncio.run( nxp_init_wasm() )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
@@ -471,6 +518,7 @@ def nxp_init() -> None:
     NXP_LoadKB_counts   = exports["nxpem_loadkb_counts"]
     NXP_Control         = exports["nxpem_control"]
     NXP_Version         = exports["nxpem_version"]
+    NXP_DSL_PopEval     = exports["nxpem_dsl_eval"]
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     #
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )

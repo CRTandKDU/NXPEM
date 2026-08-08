@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmp0ru6kgha.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp3f44_zmc.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -194,21 +194,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmp0ru6kgha.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpyy4n1rk2.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmp3f44_zmc.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp4l5ozabl.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpyy4n1rk2.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmp_3eecmjx.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmp4l5ozabl.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpjy0cov68.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmp_3eecmjx.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpjy0cov68.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -4417,6 +4417,7 @@ var _nxpem_control = Module['_nxpem_control'] = createExportWrapper('nxpem_contr
 var _nxpem_loadkb_counts = Module['_nxpem_loadkb_counts'] = createExportWrapper('nxpem_loadkb_counts', 0);
 var _nxpem_loadkb_string = Module['_nxpem_loadkb_string'] = createExportWrapper('nxpem_loadkb_string', 1);
 var _nxpem_version = Module['_nxpem_version'] = createExportWrapper('nxpem_version', 0);
+var _nxpem_dsl_eval = Module['_nxpem_dsl_eval'] = createExportWrapper('nxpem_dsl_eval', 0);
 var _fflush = createExportWrapper('fflush', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();

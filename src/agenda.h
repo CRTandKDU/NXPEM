@@ -264,7 +264,7 @@ int  engine_dsl_rhs_eval( const char * expr );
 int  engine_dsl_eval_async( const char * expr, int *err, int *suspend );
 int  engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign );
 void engine_dsl_getter_compound( compound_rec_ptr compound, int *suspend );
-
+int  engine_dsl_pop_eval( const char * expr );
 
 sign_rec_ptr agenda_get_allsigns();
 
