@@ -83,6 +83,7 @@ NXP_LoadKB_counts   = None
 NXP_Control         = None
 NXP_Version         = None
 NXP_DSL_PopEval     = None
+NXP_DSL_PopEvalStr  = None
 
 # --------------------------------------------------------------------------------
 # REPL config
@@ -250,10 +251,20 @@ def repl_cb_dsl_popeval( arr ) -> bool:
     return False
 
 
+def repl_cb_dsl_popeval_str( arr ) -> bool:
+    fth = " ".join( arr[1:] ) + "\n"
+    em_marshall_str( fth, NXPEM_MARSHALL_CHAR )
+    # print( NXP_DSL_PopEval() )
+    ret = NXP_DSL_PopEvalStr()
+    print( f'{marshall_str} ({ret})' )
+    return False
+
+
 nxp_repl_table = {
     "help":      [ None, repl_cb_pass, "help" ],
     "quit":      [ None, repl_cb_quit, "quit" ],
-    "@":         [ None, repl_cb_dsl_popeval, ("@" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
+    "eval":      [ None, repl_cb_dsl_popeval, ("eval" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
+    "eval$":     [ None, repl_cb_dsl_popeval_str, ("eval$" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
     "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
     "volunteer": [ None, repl_cb_volunteer, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) ) ],
@@ -504,6 +515,7 @@ def nxp_init() -> None:
     global NXP_Control 
     global NXP_Version
     global NXP_DSL_PopEval
+    global NXP_DSL_PopEvalStr    
 
     exports = asyncio.run( nxp_init_wasm() )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
@@ -518,7 +530,9 @@ def nxp_init() -> None:
     NXP_LoadKB_counts   = exports["nxpem_loadkb_counts"]
     NXP_Control         = exports["nxpem_control"]
     NXP_Version         = exports["nxpem_version"]
+    # New since NEXPERT Callable Interface
     NXP_DSL_PopEval     = exports["nxpem_dsl_eval"]
+    NXP_DSL_PopEvalStr  = exports["nxpem_dsl_evaltostr"]
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     #
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )

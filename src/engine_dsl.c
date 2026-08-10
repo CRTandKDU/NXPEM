@@ -824,6 +824,27 @@ int marshall_forth_compactstring( char *str, vm_extension_t * const v ){
   return r;
 }
 
+
+int marshall_forth_odd_compactstring( char *str, vm_extension_t * const v ){
+  int len, i, r;
+  cell_t loc, val, addr;
+  char buf[_MARSHALL_BUFLEN] = {0};
+  embed_mmu_read_t  mr = v->h->o.read;
+  // Read length
+  r	= embed_pop( v->h, &val );
+  len	= (int)val;
+  // Decode string at address `addr`
+  r	= embed_pop( v->h, &addr );
+  loc	= (addr>>1) % 32768 ;
+  for( i=0; i<=len; i++ ){
+    val	= mr( v->h, loc + (i>>1) );
+    str[i] = i%2 ? (char) ((val >> 8) & 0x00FF) : (char) (val & 0x00FF);
+  }
+  str[len] = 0;
+  return r;
+}
+
+
 /* ----------------------------------------------------------------------------- */
 sign_rec_ptr nxpget_sign(vm_extension_t *v)
 {
@@ -1248,6 +1269,7 @@ int  engine_dsl_eval( const char * expr ){
   return r;
 }
 
+
 int  engine_dsl_pop_eval( const char * expr ){
   cell_t val;
   int r = embed_eval( S_v->h, expr );
@@ -1256,11 +1278,20 @@ int  engine_dsl_pop_eval( const char * expr ){
   return (int) val;
 }
 
+
+int  engine_dsl_pop_eval_str( const char *expr, char *buf  ){
+  int r = embed_eval( S_v->h, expr );
+  marshall_forth_odd_compactstring( buf, S_v );
+  return strlen(buf);
+}
+
+
 int  engine_dsl_rhs_eval( const char * expr ){
   cell_t val;
   int r = embed_eval( S_v->h, expr );
   return r;
 }
+
 
 int  engine_dsl_eval_async( const char * exp, int *err, int *suspend ){
   cell_t val;

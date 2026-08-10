@@ -16,7 +16,7 @@ var Module = typeof Module != 'undefined' ? Module : {};
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: C:\Users\chauv\AppData\Local\Temp\tmp3f44_zmc.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpldsgp7pk.js
 
   if (!Module.expectedDataFileDownloads) {
     Module.expectedDataFileDownloads = 0;
@@ -194,21 +194,21 @@ var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
 
   })();
 
-// end include: C:\Users\chauv\AppData\Local\Temp\tmp3f44_zmc.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmp4l5ozabl.js
+// end include: C:\Users\chauv\AppData\Local\Temp\tmpldsgp7pk.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmp36rn5uaq.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if (Module['ENVIRONMENT_IS_PTHREAD'] || Module['$ww']) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmp4l5ozabl.js
-// include: C:\Users\chauv\AppData\Local\Temp\tmpjy0cov68.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmp36rn5uaq.js
+// include: C:\Users\chauv\AppData\Local\Temp\tmpmfv20u0r.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach(function(task) {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: C:\Users\chauv\AppData\Local\Temp\tmpjy0cov68.js
+  // end include: C:\Users\chauv\AppData\Local\Temp\tmpmfv20u0r.js
 
 
 // Sometimes an existing Module object exists with properties
@@ -4418,6 +4418,7 @@ var _nxpem_loadkb_counts = Module['_nxpem_loadkb_counts'] = createExportWrapper(
 var _nxpem_loadkb_string = Module['_nxpem_loadkb_string'] = createExportWrapper('nxpem_loadkb_string', 1);
 var _nxpem_version = Module['_nxpem_version'] = createExportWrapper('nxpem_version', 0);
 var _nxpem_dsl_eval = Module['_nxpem_dsl_eval'] = createExportWrapper('nxpem_dsl_eval', 0);
+var _nxpem_dsl_evaltostr = Module['_nxpem_dsl_evaltostr'] = createExportWrapper('nxpem_dsl_evaltostr', 0);
 var _fflush = createExportWrapper('fflush', 1);
 var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
 var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
@@ -4427,10 +4428,10 @@ var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExpor
 var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
 var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
 var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 5);
-var _embed_default_block_size = Module['_embed_default_block_size'] = 72760;
-var _embed_default_block = Module['_embed_default_block'] = 67344;
-var ___start_em_js = Module['___start_em_js'] = 85520;
-var ___stop_em_js = Module['___stop_em_js'] = 85841;
+var _embed_default_block_size = Module['_embed_default_block_size'] = 72792;
+var _embed_default_block = Module['_embed_default_block'] = 67376;
+var ___start_em_js = Module['___start_em_js'] = 85552;
+var ___stop_em_js = Module['___stop_em_js'] = 85873;
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===

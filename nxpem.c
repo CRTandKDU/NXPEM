@@ -661,3 +661,13 @@ int32_t nxpem_dsl_eval( ){
   return ret;
 }
 
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int32_t nxpem_dsl_evaltostr( ){
+  char buf[NXPEM_MARSHALL_BUFSIZE] = {0};
+  int ret = engine_dsl_pop_eval_str( S_marshall_str, buf );
+  py_marshall_str( buf );
+  return ret;
+}
+
