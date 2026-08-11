@@ -263,8 +263,8 @@ def repl_cb_dsl_popeval_str( arr ) -> bool:
 nxp_repl_table = {
     "help":      [ None, repl_cb_pass, "help" ],
     "quit":      [ None, repl_cb_quit, "quit" ],
-    "eval":      [ None, repl_cb_dsl_popeval, ("eval" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
-    "eval$":     [ None, repl_cb_dsl_popeval_str, ("eval$" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*" ))) ],
+    "eval":      [ None, repl_cb_dsl_popeval, ("eval" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
+    "eval$":     [ None, repl_cb_dsl_popeval_str, ("eval$" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
     "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
     "volunteer": [ None, repl_cb_volunteer, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) ) ],
