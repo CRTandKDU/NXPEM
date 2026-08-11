@@ -25,7 +25,60 @@
 
 #ifdef NXPEM
 extern void py_print_str( const char * );
+
+/* Suggested by Claude on Tuesday, August 11, 2026 */
+/* float parse_int_dot_frac(const char *str) { */
+/*     int int_part = 0; */
+/*     char frac_str[32] = {0}; */
+
+/*     /\* Read the integer part as a number, and the fractional part as */
+/*        a string so we know exactly how many digits it has */
+/*        (important for correct decimal placement, e.g. "3 05" -> 3.05). *\/ */
+/*     if (sscanf(str, "%d %31s", &int_part, frac_str) != 2) { */
+/*         /\* Parsing failed; return 0 or handle error as needed *\/ */
+/*         return 0.0f; */
+/*     } */
+
+/*     /\* Determine sign separately, since the fractional part should */
+/*        always be added (not subtracted) even if int_part is negative */
+/*        or is "-0". *\/ */
+/*     int negative = (str[0] == '-'); */
+
+/*     /\* Convert fractional digit string to a fractional value, */
+/*        e.g. "5" -> 0.5, "05" -> 0.05, "250" -> 0.250 *\/ */
+/*     int frac_digits = 0; */
+/*     long frac_value = strtol(frac_str, NULL, 10); */
+/*     frac_digits = (int)strlen(frac_str); */
+
+/*     /\* If the fractional part itself has a leading '-' (shouldn't normally */
+/*        happen in this format, but just in case), strip its effect on digit count *\/ */
+/*     if (frac_str[0] == '-') { */
+/*         frac_digits -= 1; */
+/*         frac_value = -frac_value; */
+/*     } */
+
+/*     float frac_part = (float)labs(frac_value) / powf(10.0f, (float)frac_digits); */
+
+/*     float result = (float)abs(int_part) + frac_part; */
+/*     if (negative) { */
+/*         result = -result; */
+/*     } */
+
+/*     return result; */
+/* } */
+
+
+/* Example usage */
+/* int main(void) { */
+/*     printf("%f\n", parse_int_dot_frac("3 5"));     /\* 3.500000 *\/ */
+/*     printf("%f\n", parse_int_dot_frac("3 05"));    /\* 3.050000 *\/ */
+/*     printf("%f\n", parse_int_dot_frac("-12 250")); /\* -12.250000 *\/ */
+/*     printf("%f\n", parse_int_dot_frac("0 7"));     /\* 0.700000 *\/ */
+/*     return 0; */
+/* } */
+
 #endif // NXPEM
+
 extern void repl_log( const char *s );
 
 #ifdef ENGINE_DSL_HOWERJFORTH
@@ -167,8 +220,9 @@ struct vm_extension_t {
   X("fmin",     cb_fmin,       true)		\
   X("fmax",     cb_fmax,       true)		\
   \
+  X("nxp2f",    cb_nxp2f,            true)      \
   X("nxp@",     cb_nxpget_async,     true)      \
-  X("nxp!",     cb_nxpset,     true)            \
+  X("nxp!",     cb_nxpset,           true)      \
 
 
 #endif
@@ -318,12 +372,17 @@ static int cb_dprint(vm_extension_t * const v) {
 }
 
 static int cb_flt_print(vm_extension_t * const v) {
+  py_print_str( "float" );
   const vm_float_t flt = fpop(v);
   char buf[512] = { 0 }; /* floats can be quite large */
   if (eget(v))
     return eclr(v);
   snprintf(buf, sizeof(buf)-1, "%e", flt);
+#ifdef NXPEM
+  py_print_str( buf );
+#else
   embed_puts(v->h, buf);
+#endif
   return eclr(v);
 }
 
@@ -1115,8 +1174,18 @@ static int cb_nxpshow(vm_extension_t * const v) {
 static int cb_nxpslog(vm_extension_t * const v) {
   char str[_MARSHALL_BUFLEN];
   int res = marshall_forth_compactstring( str, v );
+  repl_log( str );
   return 0;
 }
+
+static int cb_nxp2f(vm_extension_t * const v) {
+  char str[_MARSHALL_BUFLEN]	= {0};
+  int res			= marshall_forth_compactstring( str, v );
+  vm_float_t f			= strtof( str, NULL );
+  fpush( v, f );
+  return eclr(v);
+}
+
 
 /* ----------------------------------------------------------------------------- */
 static int cb_nxpset(vm_extension_t * const v) {
