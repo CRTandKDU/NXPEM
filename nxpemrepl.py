@@ -52,6 +52,8 @@ class VTypeCode:
     NXP_VTYPE_BOOL      = 1
     NXP_VTYPE_NUM       = 2
     NXP_VTYPE_STR       = 4
+    NXP_VTYPE_NUMFLOAT  = 8
+
 
 NXP_AINFO_NAME      = 1
 NXP_AINFO_TYPE      = 2
@@ -84,6 +86,7 @@ NXP_Control         = None
 NXP_Version         = None
 NXP_DSL_PopEval     = None
 NXP_DSL_PopEvalStr  = None
+NXP_DSL_PopEvalFloat= None
 
 # --------------------------------------------------------------------------------
 # REPL config
@@ -215,6 +218,7 @@ def repl_cb_loadkb( arr ) -> bool:
         kb = [ "#+BEGIN_RULE diagnostic_1\n",
                "$CRT_and_KDU nxp@ s( AGREE) compare 0=\n",
                "$task nxp@ s( FLUID_TRANSFER) compare 0= invert\n",
+               "!prob nxp@ s( 2.5) nxp2f f<\n",
                "NO ALARM_TANK_WAS_P1_OR_P2\n",
                "pressure_out_P3 nxp@ pressure_out_P4 nxp@ =\n",
                "THEN DECREASE_DUE_TO_THERMAL_CONDITIONS\n",
@@ -260,11 +264,21 @@ def repl_cb_dsl_popeval_str( arr ) -> bool:
     return False
 
 
+def repl_cb_dsl_popeval_float( arr ) -> bool:
+    fth = " ".join( arr[1:] ) + "\n"
+    em_marshall_str( fth, NXPEM_MARSHALL_CHAR )
+    # print( NXP_DSL_PopEval() )
+    ret = NXP_DSL_PopEvalFloat()
+    print( f'{marshall_str} ({ret})' )
+    return False
+
+
 nxp_repl_table = {
     "help":      [ None, repl_cb_pass, "help" ],
     "quit":      [ None, repl_cb_quit, "quit" ],
-    "eval":      [ None, repl_cb_dsl_popeval, ("eval" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
-    "eval$":     [ None, repl_cb_dsl_popeval_str, ("eval$" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
+    "evali":      [ None, repl_cb_dsl_popeval, ("evali" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
+    "evals":     [ None, repl_cb_dsl_popeval_str, ("evals" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
+    "evalf":     [ None, repl_cb_dsl_popeval_float, ("evalf" + pp.OneOrMore(pp.Word( pp.alphanums + "_-<>!$%&+=@/()*." ))) ],
     "loadkb":    [ None, repl_cb_loadkb, ( "loadkb" + pp.Word( pp.alphanums + "." )[..., 1] ) ],
     "suggest":   [ None, repl_cb_suggest, ("suggest" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" )) ],
     "volunteer": [ None, repl_cb_volunteer, ("volunteer" + pp.Word( pp.alphanums + "_-<>!$%&+=@/" ) ) ],
@@ -358,7 +372,7 @@ def py_print( s ) -> None:
     else:
         if 4 == s:
             # print( marshall_str )
-            msg = HTML( "<ansiblack>{}</ansiblack>".format( escape( marshall_str ) ) )
+            msg = HTML( "<ansibrightblack>{}</ansibrightblack>".format( escape( marshall_str ) ) )
             print_formatted_text( msg )
         else:
             marshall_str += chr(s)
@@ -397,6 +411,9 @@ def nxpem_getvalue( sign_id ) -> str:
             case VTypeCode.NXP_VTYPE_NUM:
                 val = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
                 return f'<b>{val}</b>'
+            case VTypeCode.NXP_VTYPE_NUMFLOAT:
+                val = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
+                return f'<b>{marshall_str}</b>'
             case VTypeCode.NXP_VTYPE_STR:
                 ignore = NXP_GetAtomInfo( sign_id, NXP_AINFO_VALUE )
                 return f'<b>{marshall_str}</b>'
@@ -415,7 +432,7 @@ def cb_on_agenda_pop() -> None:
 
     
 def cb_on_set( sign_id, vbool, vint, vstr ) -> None:
-    print( f'NXP: Set value of {marshall_str} to {vbool}, {vint}, {vstr}' )
+    print( f'NXP: Set value of {marshall_str} to b={vbool}, i={vint}, s={vstr}' )
     
 
 def cb_question( sign_id ) -> None:
@@ -444,10 +461,18 @@ def cb_question( sign_id ) -> None:
             )
             val = 1 if resp.casefold() == "yes".casefold() else 0
             res = NXP_Volunteer( sign_id, vtyp, val )
+
         case VTypeCode.NXP_VTYPE_NUM:
             print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
             resp = prompt( f'> ' )
             res = NXP_Volunteer( sign_id, vtyp, int(resp) )
+
+        case VTypeCode.NXP_VTYPE_NUMFLOAT:
+            print_formatted_text(HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' ) )
+            resp = prompt( f'> ' )
+            em_marshall_str( resp, NXPEM_MARSHALL_CHAR )
+            res = NXP_Volunteer( sign_id, vtyp, 0 )
+
         case VTypeCode.NXP_VTYPE_STR:
             message= HTML( f'<ansigreen>What is the ({vtyp}) value of {marshall_str}?</ansigreen>' )
             nchoices = NXP_GetAtomInfo( sign_id, NXP_AINFO_CHOICE )
@@ -472,6 +497,7 @@ def cb_question( sign_id ) -> None:
             #    
             em_marshall_str( resp, NXPEM_MARSHALL_CHAR )
             res = NXP_Volunteer( sign_id, vtyp, 0 )
+
         case _:
             print_formatted_text( HTML( "<ansired>ERROR: Wrong value type</ansired>" ) )
 
@@ -516,6 +542,7 @@ def nxp_init() -> None:
     global NXP_Version
     global NXP_DSL_PopEval
     global NXP_DSL_PopEvalStr    
+    global NXP_DSL_PopEvalFloat
 
     exports = asyncio.run( nxp_init_wasm() )
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "WASM imported" )
@@ -533,6 +560,8 @@ def nxp_init() -> None:
     # New since NEXPERT Callable Interface
     NXP_DSL_PopEval     = exports["nxpem_dsl_eval"]
     NXP_DSL_PopEvalStr  = exports["nxpem_dsl_evaltostr"]
+    NXP_DSL_PopEvalFloat = exports["nxpem_dsl_evaltofloat"]
+    
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "Functions exported" )
     #
     print( datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "NXP_CTRL_INIT", NXP_Control( NXP_CTRL_INIT ) )
@@ -554,7 +583,7 @@ def nxp_action( arr ) -> bool:
 def nxp_command( text ) -> bool:
     stopflag = False
     try:
-        arr = nxp_templates.parse_string( text )
+        arr = nxp_templates.parse_string( text, parse_all=True )
         stopflag = nxp_action( arr )
     except pp.ParseException as err:
         print_formatted_text( HTML( '<orange>' + err.explain() + '</orange>' ) )

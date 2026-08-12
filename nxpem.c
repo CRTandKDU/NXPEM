@@ -149,7 +149,7 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
   int nchoices		= 0;
   sign_rec_ptr s	= (sign_rec_ptr) sign;
   cond_rec_ptr cond;
-  char buf[128];
+  char buf[128] = {0};
   // Special indices
   if( info >= NXP_AINFO_RULEINDX ){
     nchoices = info - NXP_AINFO_RULEINDX;
@@ -264,6 +264,12 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
       case _VAL_T_INT:
 	return s->val.val_int;
 	break;
+      case _VAL_T_FLOAT:
+	snprintf( buf, sizeof(buf),
+		  "%f", s->val.val_float );
+	py_marshall_str( buf );
+	return 0; // (int32_t) s->val.val_float;
+	break;
       case _VAL_T_STR:
 	py_marshall_str( s->val.valptr );
 	return 0;
@@ -281,8 +287,10 @@ int32_t nxpem_getatominfo( AtomId sign, int32_t info ){
       return NXP_VTYPE_BOOL;
       break;
     case _VAL_T_INT:
-    case _VAL_T_FLOAT:
       return NXP_VTYPE_NUM;
+      break;
+    case _VAL_T_FLOAT:
+      return NXP_VTYPE_NUMFLOAT;
       break;
     case _VAL_T_STR:
       return NXP_VTYPE_STR;
@@ -386,7 +394,7 @@ EMSCRIPTEN_KEEPALIVE
 int nxpem_volunteer( AtomId sign, int32_t vtyp, int32_t val ){
   sign_rec_ptr s = (sign_rec_ptr) sign;
 
-  char msg[128]={};
+  char msg[128]={0};
   
   //
   switch( vtyp ){
@@ -404,6 +412,17 @@ int nxpem_volunteer( AtomId sign, int32_t vtyp, int32_t val ){
 		"VOLUNTEER %s num=%d", s->str, val );
       py_print_str( msg );
       return 1;
+    }
+    break;
+  // New type 20260812
+  case NXP_VTYPE_NUMFLOAT:
+    if( _VAL_T_FLOAT == s->val.type ){
+      float flt = strtof( S_marshall_str, NULL );
+      struct val_rec v = { _KNOWN, _VAL_T_FLOAT, (char *)0, 0, 0, flt };
+      sign_set_default( s, &v );
+      snprintf( msg, sizeof(msg),
+		"VOLUNTEER %s numfloat=%f", s->str, flt );
+      py_print_str( msg );
     }
     break;
   case NXP_VTYPE_STR:
@@ -426,6 +445,7 @@ int nxpem_volunteer( AtomId sign, int32_t vtyp, int32_t val ){
 void cb_on_gate( sign_rec_ptr sign, short val ){
   //
   engine_default_on_gate( sign, val );
+  py_print_str( "Gated" );
 }
 
 
@@ -667,6 +687,16 @@ EMSCRIPTEN_KEEPALIVE
 int32_t nxpem_dsl_evaltostr( ){
   char buf[NXPEM_MARSHALL_BUFSIZE] = {0};
   int ret = engine_dsl_pop_eval_str( S_marshall_str, buf );
+  py_marshall_str( buf );
+  return ret;
+}
+
+#ifdef NXPEM
+EMSCRIPTEN_KEEPALIVE
+#endif // NXPEM
+int32_t nxpem_dsl_evaltofloat( ){
+  char buf[NXPEM_MARSHALL_BUFSIZE] = {0};
+  int ret = engine_dsl_pop_eval_float( S_marshall_str, buf );
   py_marshall_str( buf );
   return ret;
 }

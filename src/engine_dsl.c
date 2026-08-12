@@ -161,6 +161,7 @@ struct vm_extension_t {
   X("fmin",     cb_fmin,       true)		\
   X("fmax",     cb_fmax,       true)		\
   \
+  X("nxp2f",    cb_nxp2f,            true)      \
   X("nxp@",     cb_nxpget_async,     true)      \
   X("nxp!",     cb_nxpset,     true)            \
   X("nxp_show", cb_nxpshow,    true)            \
@@ -428,6 +429,11 @@ static int cb_f2d(vm_extension_t * const v) {
 static int cb_fless(vm_extension_t * const v) {
   const vm_float_t f1 = fpop(v);
   const vm_float_t f2 = fpop(v);
+
+  char msg[128]={0};
+  snprintf( msg, 128, "fless %f %f %d", f1, f2, (f2<f1) );
+  py_print_str( msg );
+  
   push(v, -(f2 < f1));
   return eclr(v);
 }
@@ -919,15 +925,30 @@ sign_rec_ptr nxpget_sign(vm_extension_t *v)
 int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
   int res;
   ((sign_getter_t) sign->getters) ( sign, v->suspend );
+  
+  char msg[128]={0};
+  snprintf( msg, 128,
+	    "GETUNKNOWN" );
+  py_print_str( msg );
+
   switch( sign->val.type ){
   case _VAL_T_INT:
     res = embed_push( v->h, (cell_t)_UNKNOWN );
+    break;
+  // New type 20260812
+  case _VAL_T_FLOAT:
+    res = eclr(v);
+    fpush( v, (vm_float_t) 0.0 );
+    snprintf( msg, 128,
+	      "GETUNKNOWN pushed" );
+    py_print_str( msg );
     break;
   case _VAL_T_STR:
     res = embed_push( v->h, (cell_t) sign->val.val_forth );
     res = embed_push( v->h, (cell_t) 0 );
     break;
   }
+  
   return eclr(v);
 }
 
@@ -935,12 +956,30 @@ int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
 int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
   int res;
   cell_t val, cell;
+  vm_float_t flt;
+  
+  char msg[128]={0};
+  snprintf( msg, 128,
+	    "GETKNOWN" );
+  py_print_str( msg );
+
   switch( sign->val.type ){
   case _VAL_T_INT:
     val = (cell_t) sign->val.val_int;
     res = embed_push( v->h, val );
     break;
     //
+  // New type 20260812
+  case _VAL_T_FLOAT:
+    flt = (vm_float_t) sign->val.val_float;
+
+
+    snprintf( msg, 128,
+	      "GETKNOWN %f", flt );
+    py_print_str( msg );
+
+    fpush( v, flt );
+    break;
   case _VAL_T_STR:
     cell = sign->val.val_forth;
     /* embed_mmu_read_t  mr = v->h->o.read; */
@@ -1020,6 +1059,9 @@ void cb1 (void *s, size_t i, void *p) {
 	vrec.val_int = (int) strtol((char *)s, (char **)NULL, 10);
 	sign_set_default( S_csv_sign, &vrec );
 	break;
+
+      // New type 20260812 TODO
+
       case _VAL_T_STR:
 	vrec.type   = _VAL_T_STR;
 	vrec.valptr = (char *)malloc( strlen((char *)s)*sizeof(char) );
@@ -1054,6 +1096,9 @@ void cb3 (void *s, size_t i, void *p) {
 	sprintf( buf, "%d", S_csv_sign->val.val_int );
 	csv_fwrite(S_temp, (void *) buf, strlen(buf) );
 	break;
+
+      // New type 20260812 TODO
+
       case _VAL_T_STR:
 	csv_fwrite(S_temp, (void *) S_csv_sign->val.valptr, strlen(S_csv_sign->val.valptr) );
 	break;
@@ -1171,6 +1216,7 @@ static int cb_nxpshow(vm_extension_t * const v) {
 #endif // NXPEM
 
 
+/* ----------------------------------------------------------------------------- */
 static int cb_nxpslog(vm_extension_t * const v) {
   char str[_MARSHALL_BUFLEN];
   int res = marshall_forth_compactstring( str, v );
@@ -1183,6 +1229,7 @@ static int cb_nxp2f(vm_extension_t * const v) {
   int res			= marshall_forth_compactstring( str, v );
   vm_float_t f			= strtof( str, NULL );
   fpush( v, f );
+  py_print_str( str );
   return eclr(v);
 }
 
@@ -1192,6 +1239,7 @@ static int cb_nxpset(vm_extension_t * const v) {
   unsigned short i;
   int            res, len;
   cell_t         val;
+  vm_float_t     flt;
   char           str[_MARSHALL_BUFLEN] = "";
   struct val_rec vrec = { _KNOWN, _VAL_T_BOOL, (char *)0, _FALSE, 0, 0.0 };
   sign_rec_ptr   sign = nxpget_sign( v );
@@ -1201,6 +1249,13 @@ static int cb_nxpset(vm_extension_t * const v) {
       res = embed_pop( v->h, &val );
       vrec.type    = _VAL_T_INT;
       vrec.val_int = (int)val;
+      sign_set_default( sign, &vrec );
+      break;
+    // New type 20260812
+    case _VAL_T_FLOAT:
+      flt = fpop( v );
+      vrec.type    = _VAL_T_FLOAT;
+      vrec.val_int = flt;
       sign_set_default( sign, &vrec );
       break;
     case _VAL_T_STR:
@@ -1252,20 +1307,27 @@ int engine_dsl_DSLvar_declare( const char *dsl_var, sign_rec_ptr sign ){
     if( 0 != r ){
 #ifndef NXPEM
       embed_fatal( "can't compile sign decl" );
+#else
+      py_print_str( "can't compile sign decl" );
 #endif
     }
+    //
     if( '$' == dsl_var[0] ){
       sprintf( prgm, templ_sign$_decl, dsl_var, dsl_var );
       r = embed_eval( S_v->h, prgm );
       if( 0 != r ){
 #ifndef NXPEM
 	embed_fatal( "can't compile sign$ decl" );
+#else
+	py_print_str( "can't compile sign$ decl" );
 #endif
       }
       r = embed_pop( S_v->h, &val );
       if( 0 != r ){
 #ifndef NXPEM
 	embed_fatal( "can't pop sign $ address" );
+#else
+	py_print_str( "can't pop sign $ address" );
 #endif
       }
       sign->val.val_forth = val;
@@ -1352,6 +1414,14 @@ int  engine_dsl_pop_eval_str( const char *expr, char *buf  ){
   int r = embed_eval( S_v->h, expr );
   marshall_forth_odd_compactstring( buf, S_v );
   return strlen(buf);
+}
+
+
+int  engine_dsl_pop_eval_float( const char *expr, char *buf  ){
+  int r = embed_eval( S_v->h, expr );
+  vm_float_t flt = fpop( S_v );
+  sprintf( buf, "%f", flt );
+  return 0;
 }
 
 

@@ -126,8 +126,10 @@ loadkb_parse_cb( char *pw, compound_rec_ptr compound, sign_rec_ptr top ) {
     if( NULL == lsign ) {
         newtop = lsign = sign_pushnew( top, pw, 0, sizeof(void *), 0, sizeof(fwrd_rec_ptr) );
         /* repl_log( "pushnew" ); */
+	// New type 20260812 - Inspired from https://www.trs-80.com/sub-reference-level-2-basic.htm#Types
         lsign->val.type = _VAL_T_INT;
         if( '$' == pw[0] ) lsign->val.type = _VAL_T_STR;
+	if( '!' == pw[0] ) lsign->val.type = _VAL_T_FLOAT;
     }
     if( compound ) compound_DSLvar_pushnew( compound, lsign );
     r = engine_dsl_DSLvar_declare( pw, lsign );

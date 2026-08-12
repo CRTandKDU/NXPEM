@@ -26,6 +26,7 @@ typedef intptr_t AtomId;
 #define NXP_VTYPE_BOOL		1
 #define NXP_VTYPE_NUM		2
 #define NXP_VTYPE_STR		4
+#define NXP_VTYPE_NUMFLOAT      8
 
 #define NXP_AINFO_NAME		1
 #define NXP_AINFO_TYPE		2
