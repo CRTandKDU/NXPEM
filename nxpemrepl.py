@@ -200,8 +200,15 @@ def repl_cb_ency( arr ) -> bool:
         elif arr[1].casefold() == "rule".casefold() :
             top = NXP_GetAtomId( NXP_ATYPE_TOPRULE )
             while top:
-                res = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
-                msg =  '{0:<40}\t{1:<32}'.format( marshall_str, nxpem_getvalue(top) )
+                val  = nxpem_getvalue( top )
+                res  = NXP_GetAtomInfo( top, NXP_AINFO_NAME )
+                name = f'{marshall_str}'
+                hypo = NXP_GetAtomInfo( top, NXP_AINFO_HYPO )
+                res  = NXP_GetAtomInfo( hypo, NXP_AINFO_NAME )
+                msg  = '{:<32} ({:<32})  {:<32}'.format(
+                    name,
+                    marshall_str,
+                    val )
                 print_formatted_text( HTML(msg) )
                 top = NXP_GetAtomInfo( top, NXP_AINFO_NEXT )
             pass
@@ -604,7 +611,7 @@ def main():
 
     while True:
         try:
-            text = nxprepl_session.prompt('> ')
+            text = nxprepl_session.prompt('NXP> ')
         except KeyboardInterrupt:
             continue
         except EOFError:

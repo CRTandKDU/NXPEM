@@ -926,10 +926,10 @@ int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
   int res;
   ((sign_getter_t) sign->getters) ( sign, v->suspend );
   
-  char msg[128]={0};
-  snprintf( msg, 128,
-	    "GETUNKNOWN" );
-  py_print_str( msg );
+  /* char msg[128]={0}; */
+  /* snprintf( msg, 128, */
+  /* 	    "GETUNKNOWN" ); */
+  /* py_print_str( msg ); */
 
   switch( sign->val.type ){
   case _VAL_T_INT:
@@ -939,9 +939,9 @@ int nxpget_unknown( vm_extension_t * const v, sign_rec_ptr sign ){
   case _VAL_T_FLOAT:
     res = eclr(v);
     fpush( v, (vm_float_t) 0.0 );
-    snprintf( msg, 128,
-	      "GETUNKNOWN pushed" );
-    py_print_str( msg );
+    /* snprintf( msg, 128, */
+    /* 	      "GETUNKNOWN pushed" ); */
+    /* py_print_str( msg ); */
     break;
   case _VAL_T_STR:
     res = embed_push( v->h, (cell_t) sign->val.val_forth );
@@ -958,10 +958,10 @@ int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
   cell_t val, cell;
   vm_float_t flt;
   
-  char msg[128]={0};
-  snprintf( msg, 128,
-	    "GETKNOWN" );
-  py_print_str( msg );
+  /* char msg[128]={0}; */
+  /* snprintf( msg, 128, */
+  /* 	    "GETKNOWN" ); */
+  /* py_print_str( msg ); */
 
   switch( sign->val.type ){
   case _VAL_T_INT:
@@ -972,14 +972,9 @@ int nxpget_known( vm_extension_t * const v, sign_rec_ptr sign ){
   // New type 20260812
   case _VAL_T_FLOAT:
     flt = (vm_float_t) sign->val.val_float;
-
-
-    snprintf( msg, 128,
-	      "GETKNOWN %f", flt );
-    py_print_str( msg );
-
     fpush( v, flt );
     break;
+
   case _VAL_T_STR:
     cell = sign->val.val_forth;
     /* embed_mmu_read_t  mr = v->h->o.read; */
